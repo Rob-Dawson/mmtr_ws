@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="tracked_robot_2">
+
+	<xacro:include filename="inertial_macros.xacro" />
+
+	<!-- ********** MACROS ********** -->
+	<xacro:property name="mass" value="1.5"> </xacro:property>
+    <xacro:property name="base_mass" value="2.00" />
+    <xacro:property name="flipper_mass" value="0.375" />
+    <xacro:property name="flipper_length" value="0.025" />
+	<!-- ********** MACROS ********** -->
+
+
+
+	<!-- ********** BASE LINK ********** -->
+	<link name="base_link">
+
+	</link>
+
+	<joint name="chassis_joint" type="fixed">
+		<parent link="base_link" />
+		<child link="chassis_link" />
+		<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+	</joint>
+	<!-- ********** BASE LINK ********** -->
+
+
+
+	<!-- ********** CHASSIS LINK ********** -->
+	<link name="chassis_link">
+
+		<xacro:inertial_box mass="${mass}" x="0.25932" y="0.153" z="0.05932">
+			<origin xyz="0 0 0.024757" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/chassis_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/chassis_link.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<gazebo reference="chassis_link">
+		<gravity>false</gravity>
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		
+		<kp value="100000.0" />
+		<kd value="10.0" />
+	</gazebo>
+	<!-- ********** CHASSIS LINK ********** -->
+
+
+
+	<!-- ********** IMU LINK ********** -->
+	<link name="imu_link">
+
+		<xacro:inertial_box mass="${mass}" x="0.25932" y="0.153" z="0.05932">
+			<origin xyz="1.5315E-06 -1.1582E-06 0.024757" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/chassis_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/chassis_link.STL" />
+			</geometry>
+		</collision>
+
+	</link>
+
+	<gazebo reference="imu_link">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		
+		<kp value="100000.0" />
+		<kd value="10.0" />
+
+			<gravity>true</gravity>
+			<sensor name="imu_sensor" type="imu">
+			  <always_on>true</always_on>
+			  <update_rate>100</update_rate>
+			  <visualize>true</visualize>
+			  <topic>__default_topic__</topic>
+			  <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+				<topicName>imu</topicName>
+				<bodyName>imu_link</bodyName>
+				<updateRateHZ>10.0</updateRateHZ>
+				<gaussianNoise>0.0</gaussianNoise>
+				<xyzOffset>0 0 0</xyzOffset>
+				<rpyOffset>0 0 0</rpyOffset>
+				<frameName>imu_link</frameName>
+				<initialOrientationAsReference>false</initialOrientationAsReference>
+			  </plugin>
+			  <pose>0 0 0 0 0 0</pose>
+			</sensor>
+	</gazebo>
+
+	<joint name="imu_joint" type="fixed">
+		<parent link="chassis_link" />
+		<child link="imu_link" />
+		<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+	</joint>
+	<!-- ********** IMU LINK ********** -->
+
+
+
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+	<link name="left_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="0.033943 0.00023886 -0.002" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/left_flipper_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/left_flipper_link.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="left_flipper_joint" type="continuous">
+		<origin xyz="0.099884 -0.1132 0.029559" rpy="1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="left_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="-3" upper="3" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="left_flipper_link">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		
+		<material>Gazebo/DarkGrey</material>
+		<kp value="100000.0" />
+		<kd value="10.0" />
+	</gazebo>
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+
+
+
+	<!-- ********** RIGHT FLIPPER LINK ********** -->
+	<link name="right_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="0.034069 7.9651E-05 -0.00043099" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/right_flipper_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/right_flipper_link.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="right_flipper_joint" type="continuous">
+		<origin xyz="0.099884 0.1132 0.029559" rpy="-1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="right_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="-3" upper="3" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="right_flipper_link">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		
+		<material>Gazebo/DarkGrey</material>
+		<kp value="100000.0" />
+		<kd value="10.0" />
+	</gazebo>
+	<!-- ********** RIGHT FLIPPER LINK ********** -->
+
+
+
+	<!-- ********** REAR LEFT FLIPPER LINK ********** -->
+	<link name="rear_left_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="-0.033863 -3.5938E-05 -0.00043099" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/rear_left_flipper_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/rear_left_flipper_link.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="rear_left_flipper_joint" type="continuous">
+		<origin xyz="-0.099884 -0.1132 0.029559" rpy="1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="rear_left_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="-3" upper="3" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="rear_left_flipper_link">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		
+		<material>Gazebo/DarkGrey</material>
+		<kp value="100000.0" />
+		<kd value="10.0" />
+	</gazebo>
+	<!-- ********** REAR LEFT FLIPPER LINK ********** -->
+
+
+
+	<!-- ********** REAR RIGHT FLIPPER LINK ********** -->
+	<link name="rear_right_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="-0.035 7.9651E-05 -0.00043099" rpy="0 0 0" />
+		</xacro:inertial_box>
+		
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/rear_right_flipper_link.STL" />
+			</geometry>
+		</visual>
+	
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="file://$(find tracked_robot_2)/description/meshes/rear_right_flipper_link.STL" />
+			</geometry>
+		</collision>
+	</link>
+	
+	<joint name="rear_right_flipper_joint" type="continuous">
+		<origin xyz="-0.099884 0.1132 0.029559" rpy="-1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="rear_right_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="-3" upper="3" effort="1.96" velocity="1.0" />
+	</joint>
+	
+	<gazebo reference="rear_right_flipper_link">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		
+		<material>Gazebo/DarkGrey</material>
+		<kp value="1000000.0" />
+		<kd value="10.0" />
+	</gazebo>
+	<!-- ********** REAR RIGHT FLIPPER LINK ********** -->
+
+	<sensor name="left_encoder" type="joint_state">
+		<joint>left_flipper_joint</joint>
+	  </sensor>
+	  
+	  <sensor name="right_encoder" type="joint_state">
+		<joint>right_flipper_joint</joint>
+	  </sensor>
+
+	<gazebo>
+<!-- This needs changing to be an environment variable instead of using an absolute path-->
+		<plugin filename='/home/rob/ros_tut_ws/install/gazebo_ros2_tracked_vehicle_interface/share/gazebo_ros2_tracked_vehicle_interface/libgazebo_track_interface.so' name='tracked_vehicle_interface'>
+			<commandROSTopic>/cmd_vel</commandROSTopic>
+			<commandIGNTopic>~/tracked_robot_2/cmd_vel_twist</commandIGNTopic>
+			<odometryTopic>odom</odometryTopic> 
+
+			<robotBaseFrame>chassis_link</robotBaseFrame>
+			<tracks_separation>0.150</tracks_separation>
+			<publishOdomTF>true</publishOdomTF>
+			<odometrySource>world</odometrySource> <!-- [encoder,world] - choose world for ground truth -->
+			<trackSpeedTopic>~/tracked_robot_2/tracks_speed</trackSpeedTopic>
+		</plugin>
+	</gazebo>
+
+	<gazebo>
+		<plugin filename="libSimpleTrackedVehiclePlugin.so" name="hello">
+			<body>base_link</body>
+			<left_track>left_flipper_link</left_track>
+			<right_track>right_flipper_link</right_track>
+			<left_flipper>rear_left_flipper_link</left_flipper>
+			<right_flipper>rear_right_flipper_link</right_flipper>
+			<tracks_separation>0.150</tracks_separation>
+			<steering_efficiency>0.5</steering_efficiency>
+			<track_mu>200</track_mu>
+			<track_mu2>50</track_mu2>
+			<max_angular_speed>1.0</max_angular_speed>
+			<max_linear_speed>1.0</max_linear_speed>
+
+		</plugin>
+	</gazebo>
+
+
+	<!-- ENSURE YOU CHECK THE GAZEBO PLUGIN PATH
+	 echo $GAZEBO_PLUGIN_PATH
+	 export GAZEBO_PLUGIN_PATH=/home/rob/ros_tut_ws/install/tracked_robot_2/share/tracked_robot_2
+ -->
+
+	<gazebo>
+		<plugin filename="libKeysToCmdVelPlugin.so" name="keyboard_control">
+			<publish_as_twist>true</publish_as_twist>
+			<!-- This MUST be the name of the ros package -->
+			<cmd_vel_topic>~/tracked_robot_2/cmd_vel_twist</cmd_vel_topic>   
+		</plugin>
+	</gazebo>
+
+	<!-- <ros2_control name="GazeboSystem" type="system">
+        <hardware>
+            <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+        </hardware>
+    	
+		<joint name="left_flipper_joint">
+			<param name="pos_kp">10.0001</param>
+			<param name="pos_ki">1.01</param>
+			<param name="pos_kd">1.01</param>
+			<param name="pos_max_integral_error">0.1</param>
+			<command_interface name="position_pid"> 
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+				</command_interface>			
+			<state_interface name="position"/>
+			<state_interface name="effort"/>
+			<state_interface name="velocity"/>
+			
+      	</joint>
+
+		  <joint name="right_flipper_joint">
+			<param name="pos_kp">10.0001</param>
+			<param name="pos_ki">1.01</param>
+			<param name="pos_kd">1.01</param>
+			<param name="pos_max_integral_error">0.1</param>
+			<command_interface name="position_pid"> 
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+				</command_interface>			
+			<state_interface name="position"/>
+			<state_interface name="effort"/>
+			<state_interface name="velocity"/>
+			
+      	</joint>
+
+		  <joint name="rear_left_flipper_joint">
+			<param name="pos_kp">10.0001</param>
+			<param name="pos_ki">1.01</param>
+			<param name="pos_kd">1.01</param>
+			<param name="pos_max_integral_error">0.1</param>
+			<command_interface name="position_pid"> 
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+				</command_interface>			
+			<state_interface name="position"/>
+			<state_interface name="effort"/>
+			<state_interface name="velocity"/>
+			
+      	</joint>
+
+		  <joint name="rear_right_flipper_joint">
+			<param name="pos_kp">10.0001</param>
+			<param name="pos_ki">1.01</param>
+			<param name="pos_kd">1.01</param>
+			<param name="pos_max_integral_error">0.1</param>
+			<command_interface name="position_pid"> 
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+				</command_interface>			
+			<state_interface name="position"/>
+			<state_interface name="effort"/>
+			<state_interface name="velocity"/>
+			
+      	</joint>
+	</ros2_control>  -->
+
+    <!-- <gazebo>
+        <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">      -->
+			<!-- <robot_param>robot_description</robot_param>
+			<robot_param_node>robot_state_publisher</robot_param_node> -->
+            <!-- <parameters>$(find tracked_robot_2)/config/flipper_joint.yaml</parameters>
+        </plugin>   
+    </gazebo>  -->
+</robot>
