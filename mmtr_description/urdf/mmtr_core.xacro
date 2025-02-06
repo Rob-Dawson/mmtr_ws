@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mmtr">
+<plugin name="gazebo_ros_paths" filename="libgazebo_ros_paths_plugin.so"/>
+
+    <xacro:property name="mesh_dir" value="file://$(find mmtr_description)/meshes/" />
+
+	<xacro:include filename="inertial_macros.xacro" />
+
+	<!-- ********** MACROS ********** -->
+	<xacro:property name="mass" value="1.5"> </xacro:property>
+	<xacro:property name="flipper_mass" value="0.375" />
+	<xacro:property name="flipper_length" value="0.12932" />
+	<xacro:property name="flipper_width" value="0.041" />
+
+	<xacro:property name="flipper_radius" value="0.06958" />
+
+	<!-- ********** MACROS ********** -->
+
+
+	<!-- ********** BASE LINK ********** -->
+	<link name="base_footprint" />
+
+	<joint name="chassis_joint" type="fixed">
+		<parent link="base_footprint" />
+		<child link="base_link" />
+		<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+	</joint>
+	<!-- ********** BASE LINK ********** -->
+
+
+	<!-- ********** CHASSIS LINK ********** -->
+	<link name="base_link">
+
+		<xacro:inertial_box mass="${mass}" x="0.25932" y="0.153" z="0.05932">
+			<origin xyz="0 0 0.024757" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh  filename="${mesh_dir}chassis_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh  filename="${mesh_dir}chassis_link.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<gazebo reference="base_link">
+		<self_collide>1</self_collide>
+		<mu1>1</mu1>
+		<mu2>1</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<gravity>false</gravity>
+		<maxContacts>2</maxContacts>
+	</gazebo>
+	<!-- ********** CHASSIS LINK ********** -->
+
+
+	<!-- ********** IMU LINK ********** -->
+	<link name="imu_link">
+
+		<inertial>
+			<origin xyz="-0.00552433659106688 0.000168210391520346 0.000514000497342681" rpy="0 0 0" />
+			<mass value="0.000528415362211671" />
+			<inertia ixx="1.46176048428261E-08" ixy="1.40015117949421E-10"
+				ixz="-1.99633872937403E-12"
+				iyy="8.59662482954888E-09" iyz="7.52375112767959E-12"
+				izz="2.30279421279312E-08" />
+		</inertial>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254" />
+			</geometry>
+		</collision>
+
+	</link>
+	<gazebo reference="imu_link">
+		<sensor name="imu" type="imu">
+			<always_on>true</always_on>
+			<update_rate>100</update_rate>
+			<imu>
+				<angular_velocity>
+					<x>
+						<noise type="gaussian">
+							<mean>0.0</mean>
+							<stddev>2e-4</stddev>
+						</noise>
+					</x>
+					<y>
+						<noise type="gaussian">
+							<mean>0.0</mean>
+							<stddev>2e-4</stddev>
+						</noise>
+					</y>
+					<z>
+						<noise type="gaussian">
+							<mean>0.0</mean>
+							<stddev>2e-4</stddev>
+						</noise>
+					</z>
+				</angular_velocity>
+				<linear_acceleration>
+					<x>
+						<noise type="gaussian">
+							<mean>0.0</mean>
+							<stddev>1.7e-2</stddev>
+						</noise>
+					</x>
+					<y>
+						<noise type="gaussian">
+							<mean>0.0</mean>
+							<stddev>1.7e-2</stddev>
+						</noise>
+					</y>
+					<z>
+						<noise type="gaussian">
+							<mean>0.0</mean>
+							<stddev>1.7e-2</stddev>
+						</noise>
+					</z>
+				</linear_acceleration>
+			</imu>
+			<plugin name="imu_noise" filename="libgazebo_ros_imu_sensor.so" />
+		</sensor>
+	</gazebo>
+
+	<joint name="imu_joint" type="fixed">
+		<parent link="base_link" />
+		<child link="imu_link" />
+		<origin xyz="0.0 0.0 0.01" rpy="0.0 0.0 0.0" />
+		<axis xyz="0 0 0" />
+	</joint>
+
+
+	<!-- 
+
+	<link name="imu_link_real">
+
+		<xacro:inertial_box mass="0.000528415362211671" x="0.01684" y="0.03111" z="0.00254">
+			<origin xyz="1.5315E-06 -1.1582E-06 0.024757" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254"/>
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254"/>
+			</geometry>
+		</collision>
+
+	</link>
+	
+	<gazebo reference="imu_link_real">
+		<sensor name="imu_sensor" type="imu">
+			<always_on>true</always_on>
+			<update_rate>100</update_rate>
+			<visualize>true</visualize>
+			
+			<plugin name="imu_real" filename="libgazebo_ros_imu_sensor.so"/>
+		</sensor>
+	</gazebo>
+
+	<joint name="imu_joint_real" type="fixed">
+		<parent link="base_link" />
+		<child link="imu_link_real" />
+		<origin xyz="0.0 0.0 0.005" rpy="0.0 0.0 0.0" />
+		<axis xyz="0 0 0" />
+
+	</joint> -->
+
+
+	<!-- ********** IMU LINK ********** -->
+
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+	<!-- <link name="fake_left_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="0.033943 0.00023886 -0.002" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="-0.0 0 0" rpy="0 0 0" />
+			<geometry>
+                <box size="0.12932 0.06958 0.041"/>
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+                <box size="0.12932 0.08958 0.041"/>
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="fake_left_flipper_joint" type="revolute">
+		<origin xyz="0.00 -0.1025 0.0299" rpy="1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="fake_left_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="0" upper="0" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="fake_left_flipper_joint">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		
+		<material>Gazebo/Blue</material>
+		<kp value="100000.0" />
+		<kd value="10.0" />
+	</gazebo> -->
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+	<!-- <link name="fake_right_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="0.033943 0.00023886 -0.002" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="-0.0 0 0" rpy="0 0 0" />
+			<geometry>
+                <box size="0.12932 0.06958 0.041"/>
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+                <box size="0.12932 0.08958 0.041"/>
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="fake_right_flipper_joint" type="revolute">
+		<origin xyz="0.00 0.1025 0.0299" rpy="-1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="fake_right_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="0" upper="0" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="fake_right_flipper_joint">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		
+		<material>Gazebo/Blue</material>
+		<kp value="100000.0" />
+		<kd value="10.0" />
+	</gazebo> -->
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+
+
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+	<link name="left_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="0.033943 0.00023886 -0.002" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					 filename="${mesh_dir}left_flipper_link.STL" />
+			</geometry>
+		</visual>
+
+
+		<collision name='left_wheel_1_link'>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					 filename="${mesh_dir}left_flipper_link.STL" />
+			</geometry>
+		</collision>
+		<!-- <collision name='left_wheel_1_link'>
+			<origin xyz="0 0 -0.0112" rpy="0 0 0" />
+			<geometry>
+				<cylinder radius="${flipper_radius/2}" length="${flipper_width}"/>
+			</geometry>
+		</collision>
+
+		<collision name='left_wheel_2_link'>
+			<origin xyz="${(flipper_radius+0.0006)} 0 -0.0112" rpy="0 0 0" />
+			<geometry>
+				<cylinder radius="${flipper_radius/2}" length="${flipper_width}"/>
+			</geometry>
+		</collision>
+
+		<collision name='left_middle_bar_link'>
+			<origin xyz="0.03 0.0 -0.0112" rpy="0 0 0" />
+            <geometry>
+                <box size="${flipper_length} ${flipper_radius} ${flipper_width}" />
+            </geometry>
+		</collision> -->
+
+	</link>
+
+	<joint name="left_flipper_joint" type="revolute">
+		<origin xyz="0.099884 -0.1132 0.029559" rpy="1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="left_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="-4" upper="4" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="left_flipper_link">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<gravity>1</gravity>
+		<maxContacts>2</maxContacts>
+		<material>Gazebo/DarkGrey</material>
+	</gazebo>
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+
+
+	<!-- ********** RIGHT FLIPPER LINK ********** -->
+	<link name="right_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="0.034069 7.9651E-05 -0.00043099" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					 filename="${mesh_dir}right_flipper_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					 filename="${mesh_dir}right_flipper_link.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="right_flipper_joint" type="revolute">
+		<origin xyz="0.099884 0.1132 0.029559" rpy="-1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="right_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="-4" upper="4" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="right_flipper_link">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<gravity>1</gravity>
+		<maxContacts>2</maxContacts>
+		<material>Gazebo/DarkGrey</material>
+	</gazebo>
+	<!-- ********** RIGHT FLIPPER LINK ********** -->
+
+
+	<!-- ********** REAR LEFT FLIPPER LINK ********** -->
+	<link name="rear_left_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="-0.033863 -3.5938E-05 -0.00043099" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					 filename="${mesh_dir}rear_left_flipper_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					 filename="${mesh_dir}rear_left_flipper_link.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="rear_left_flipper_joint" type="revolute">
+		<origin xyz="-0.099884 -0.1132 0.029559" rpy="1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="rear_left_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="-4" upper="4" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="rear_left_flipper_link">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<gravity>1</gravity>
+		<maxContacts>2</maxContacts>
+		<material>Gazebo/DarkGrey</material>
+	</gazebo>
+	<!-- ********** REAR LEFT FLIPPER LINK ********** -->
+
+
+	<!-- ********** REAR RIGHT FLIPPER LINK ********** -->
+	<link name="rear_right_flipper_link">
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="-0.035 7.9651E-05 -0.00043099" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					 filename="${mesh_dir}rear_right_flipper_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					 filename="${mesh_dir}rear_right_flipper_link.STL" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="rear_right_flipper_joint" type="revolute">
+		<origin xyz="-0.099884 0.1132 0.029559" rpy="-1.5708 0 0" />
+		<parent link="base_link" />
+		<child link="rear_right_flipper_link" />
+		<axis xyz="0 0 1" />
+		<limit lower="-4" upper="4" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="rear_right_flipper_link">
+		<mu1>10</mu1>
+		<mu2>10</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<gravity>1</gravity>
+		<maxContacts>2</maxContacts>
+		<material>Gazebo/DarkGrey</material>
+	</gazebo>
+	<!-- ********** REAR RIGHT FLIPPER LINK ********** -->
+
+
+	<!-- ********** THIS WILL NEED TO BE REMOVED EVENTUALLY  LINK ********** -->
+
+	<link name="laser_link">
+		<inertial>
+			<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+			<mass value="0.07" />
+			<inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0" />
+		</inertial>
+
+
+		<visual>
+			<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01 0.01 0.01" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01 0.01 0.01" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="laser_joint" type="fixed">
+
+		<parent link="base_link" />
+		<child link="laser_link" />
+		<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+
+	</joint>
+
+
+	<gazebo reference="laser_link">
+		<sensor name="lidar" type="ray">
+			<always_on>true</always_on>
+			<visualize>true</visualize>
+			<update_rate>1000</update_rate>
+			<ray>
+				<scan>
+					<horizontal>
+						<samples>360</samples>
+						<resolution>0</resolution>
+						<min_angle>0.000000</min_angle>
+						<max_angle>0</max_angle>
+					</horizontal>
+				</scan>
+				<range>
+					<min>0</min>
+					<max>0</max>
+					<resolution>0</resolution>
+				</range>
+				<noise>
+					<type>gaussian</type>
+					<mean>0.0</mean>
+					<stddev>0.01</stddev>
+				</noise>
+			</ray>
+			<plugin name="scan" filename="libgazebo_ros_ray_sensor.so">
+				<ros>
+					<remapping>~/out:=scan</remapping>
+				</ros>
+				<output_type>sensor_msgs/LaserScan</output_type>
+				<frame_name>laser_link</frame_name>
+			</plugin>
+		</sensor>
+	</gazebo>
+
+
+	<!-- ENSURE YOU CHECK THE GAZEBO PLUGIN PATH
+	 echo $GAZEBO_PLUGIN_PATH
+	 export GAZEBO_PLUGIN_PATH=/home/rob/ros_tut_ws/install/tracked_robot_2/share/tracked_robot_2
+ -->
+
+
+	<ros2_control name="GazeboSystem" type="system">
+		<hardware>
+			<plugin>gazebo_ros2_control/GazeboSystem</plugin>
+		</hardware>
+
+		<joint name="left_flipper_joint">
+			<param name="pos_kp">10.0001</param>
+			<param name="pos_ki">1.01</param>
+			<param name="pos_kd">1.01</param>
+			<param name="pos_max_integral_error">0.1</param>
+			<command_interface name="position_pid">
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+			</command_interface>
+			<state_interface name="position" />
+			<state_interface name="effort" />
+			<state_interface name="velocity" />
+
+		</joint>
+
+		<joint name="right_flipper_joint">
+			<param name="pos_kp">10.0001</param>
+			<param name="pos_ki">1.01</param>
+			<param name="pos_kd">1.01</param>
+			<param name="pos_max_integral_error">0.1</param>
+			<command_interface name="position_pid">
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+			</command_interface>
+			<state_interface name="position" />
+			<state_interface name="effort" />
+			<state_interface name="velocity" />
+
+		</joint>
+
+		<joint name="rear_left_flipper_joint">
+			<param name="pos_kp">10.0001</param>
+			<param name="pos_ki">1.01</param>
+			<param name="pos_kd">1.01</param>
+			<param name="pos_max_integral_error">0.1</param>
+			<command_interface name="position_pid">
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+			</command_interface>
+			<state_interface name="position" />
+			<state_interface name="effort" />
+			<state_interface name="velocity" />
+
+		</joint>
+
+		<joint name="rear_right_flipper_joint">
+			<param name="pos_kp">10.0001</param>
+			<param name="pos_ki">1.01</param>
+			<param name="pos_kd">1.01</param>
+			<param name="pos_max_integral_error">0.1</param>
+			<command_interface name="position_pid">
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+			</command_interface>
+			<state_interface name="position" />
+			<state_interface name="effort" />
+			<state_interface name="velocity" />
+
+		</joint>
+	</ros2_control>
+
+	<!-- <gazebo>
+		<plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control"> -->
+			<!-- <robot_param>robot_description</robot_param>
+			<robot_param_node>robot_state_publisher</robot_param_node> -->
+			<!-- <parameters>$(find tracked_robot_2)/config/flipper_joint.yaml</parameters>
+		</plugin>
+	</gazebo>
+
+	<gazebo> -->
+		<!-- This needs changing to be an environment variable instead of using an absolute path-->
+		<!-- <plugin
+			filename='/home/rob/ros_tut_ws/install/tracked_odom/share/tracked_odom/libtracked_odom.so'
+			name='tracked_vehicle_interface'>
+			<commandROSTopic>/cmd_vel</commandROSTopic>
+			<commandIGNTopic>~/tracked_robot_2/cmd_vel_twist</commandIGNTopic>
+			<odometryTopic>odomstuff</odometryTopic>
+
+			<robotBaseFrame>base_link</robotBaseFrame> -->
+			<!--This
+			must be around 0.74 for now otherwise the odom is inaccurate. This will be looked at
+			later.
+					Most likly the track speed-->
+			<!-- <tracks_separation>0.74</tracks_separation> -->
+			<!-- <tracks_separation>0.229</tracks_separation>
+
+			<publishOdomTF>true</publishOdomTF>
+			<odometrySource>encoder</odometrySource>
+			<trackSpeedTopic>~/tracked_robot_2/tracks_speed</trackSpeedTopic>
+		</plugin>
+	</gazebo> -->
+
+	<!-- <gazebo>
+		<plugin filename="libSimpleTrackedVehiclePlugin.so" name="hello">
+			<body>base_footprint</body>
+			<left_track>left_flipper_link</left_track>
+			<right_track>right_flipper_link</right_track>
+
+			<left_flipper>rear_left_flipper_link</left_flipper>
+			<right_flipper>rear_right_flipper_link</right_flipper> -->
+			<!-- <tracks_separation>0.74</tracks_separation> -->
+			<!-- <tracks_separation>0.229</tracks_separation>
+			<steering_efficiency>0.5</steering_efficiency>
+			<track_mu>2</track_mu>
+			<track_mu2>0.5</track_mu2>
+			<max_angular_speed>5.0</max_angular_speed>
+			<max_linear_speed>5.0</max_linear_speed>
+
+		</plugin>
+	</gazebo> -->
+
+	<!-- <gazebo>
+		<plugin filename="libKeysToCmdVelPlugin.so" name="keyboard_control">
+			<publish_as_twist>true</publish_as_twist>
+			This MUST be the name of the ros package 
+			<cmd_vel_topic>~/tracked_robot_2/cmd_vel_twist</cmd_vel_topic>
+		</plugin>
+	</gazebo> -->
+</robot>
