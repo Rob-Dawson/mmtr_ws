@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mmtr">
+	<plugin name="gazebo_ros_paths" filename="libgazebo_ros_paths_plugin.so" />
+
+	<xacro:property name="mesh_dir" value="file://$(find mmtr_description)/meshes/" />
+  	<!-- <xacro:include filename="$(find mmtr_description)/urdf/mmtr_ros_2_control.xacro" /> -->
+	<xacro:property name="flipper_mass" value="0.375" />
+
+	<xacro:include filename="inertial_macros.xacro" />
+
+	<!-- ********** MACROS ********** -->
+	<xacro:property name="mass" value="1.5"> </xacro:property>
+	<xacro:property name="flipper_mass" value="0.375" />
+	<xacro:property name="flipper_length" value="0.12932" />
+	<xacro:property name="flipper_width" value="0.041" />
+
+	<xacro:property name="flipper_radius" value="0.06958" />
+
+	<!-- ********** MACROS ********** -->
+
+
+	<!-- ********** BASE LINK ********** -->
+	<link name="base_footprint" />
+
+	<joint name="chassis_joint" type="fixed">
+		<parent link="base_footprint" />
+		<child link="base_link" />
+		<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+	</joint>
+	<!-- ********** BASE LINK ********** -->
+
+	<!-- ********** CHASSIS LINK ********** -->
+
+	<link name="base_link">
+
+		<xacro:inertial_box mass="1" x="0.25" y="0.175" z="0.06">
+    <origin xyz="-4.4639E-06 -1.1907E-06 -0.0036869" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+
+
+
+<!-- <inertial>
+    <origin xyz="-4.4639E-06 -1.1907E-06 -0.0036869" rpy="0 0 0" />
+    <mass value="3.0" />
+    <inertia
+        ixx="0.0055239"
+        ixy="9.7788E-07"
+        ixz="1.5028E-07"
+        iyy="0.0215439"
+        iyz="2.2009E-07"
+        izz="0.0251589" />
+</inertial> -->
+
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="${mesh_dir}base_link.STL" />
+			</geometry>
+
+		</visual>
+
+		<collision name="box">
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.2 0.156 0.05932" />
+			</geometry>
+		</collision>
+
+		<collision name="rear_curved">
+			<origin xyz="-0.1 0 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.02966" length="0.156" />
+			</geometry>
+		</collision>
+
+		<collision name="front_curved">
+			<origin xyz="0.1 0 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.02966" length="0.156" />
+			</geometry>
+		</collision>
+	</link>
+
+	<gazebo reference="base_link">
+		<self_collide>1</self_collide>
+		<mu1>100.0</mu1>
+		<mu2>100.0</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<maxContacts>2</maxContacts>
+	</gazebo>
+	<!-- ********** CHASSIS LINK ********** -->
+
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+
+	<link
+		name="front_flipper_left">
+
+
+				<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+    <origin xyz="0.039257 -0.01033 -0.00014149" rpy="0 0 0" />
+		</xacro:inertial_box>
+<!-- <inertial>
+    <origin xyz="0.039257 -0.01033 -0.00014149" rpy="0 0 0" />
+    <mass value="2.0" />
+    <inertia
+        ixx="0.0008184"
+        ixy="-4.6196E-05"
+        ixz="4.2342E-07"
+        iyy="0.0029431"
+        iyz="3.2476E-07"
+        izz="0.00228085" />
+</inertial> -->
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					filename="${mesh_dir}front_flipper_left.STL" />
+			</geometry>
+		</visual>
+
+		<collision name='left_wheel_1_link'>
+			<origin xyz="-0.0 -0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='left_wheel_2_link'>
+			<origin xyz="0.07 -0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='left_box_1_link'>
+			<origin xyz="0.035 -0.012 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.07 0.041 0.0696" />
+			</geometry>
+		</collision>
+
+	</link>
+
+	<joint name="front_left_flipper_joint" type="revolute">
+		<origin xyz="0.099914 0.1132 0.00012834" rpy="0 0 0" />
+		<parent link="base_link" />
+		<child link="front_flipper_left" />
+		<axis xyz="0 1 0" />
+		<limit lower="-4" upper="4" effort="10.96" velocity="10.0" />
+	</joint>
+
+	<gazebo reference="front_flipper_left">
+		<mu1>100.0</mu1>
+		<mu2>100.0</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<gravity>1</gravity>
+		<maxContacts>2</maxContacts>
+		<material>Gazebo/DarkGrey</material>
+	</gazebo>
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+
+
+	<!-- ********** RIGHT FLIPPER LINK ********** -->
+	<link name="front_flipper_right">
+<!-- <inertial>
+    <origin xyz="0.039266 0.01033 0.00013504" rpy="0 0 0" />
+    <mass value="2.0" />
+    <inertia
+        ixx="0.0008184"
+        ixy="0.000046196"
+        ixz="-0.00000042342"
+        iyy="0.0029431"
+        iyz="0.00000032476"
+        izz="0.00228085" />
+</inertial> -->
+		
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+    <origin xyz="0.039266 0.01033 0.00013504" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="${mesh_dir}front_flipper_right.STL" />
+			</geometry>
+		</visual>
+
+		<collision name='right_wheel_1_link'>
+			<origin xyz="-0.0 0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='right_wheel_2_link'>
+			<origin xyz="0.07 0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='right_box_1_link'>
+			<origin xyz="0.035 0.012 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.07 0.041 0.0696" />
+			</geometry>
+		</collision>
+
+	</link>
+
+	<joint name="front_flipper_right_joint" type="revolute">
+		<origin xyz="0.099905 -0.1132 -0.00012189" rpy="0 0 0" />
+		<parent link="base_link" />
+		<child link="front_flipper_right" />
+		<axis xyz="0 1 0" />
+		<limit lower="-4" upper="4" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="front_flipper_right">
+		<mu1>100.0</mu1>
+		<mu2>100.0</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<gravity>1</gravity>
+		<maxContacts>2</maxContacts>
+		<material>Gazebo/DarkGrey</material>
+	</gazebo>
+	<!-- ********** RIGHT FLIPPER LINK ********** -->
+
+
+	<!-- ********** REAR RIGHT FLIPPER LINK ********** -->
+	<link name="rear_flipper_right">
+		<!-- <inertial>
+			<origin xyz="-0.039256 0.01033 -0.0001417" rpy="0 0 0" />
+    <mass value="2.0" />
+    <inertia
+        ixx="0.0008184"
+        ixy="0.000046196"
+        ixz="-0.00000042342"
+        iyy="0.0029431"
+        iyz="0.00000032476"
+        izz="0.00228085" />
+</inertial> -->
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="-0.039256 0.01033 -0.0001417" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="${mesh_dir}rear_flipper_right.STL" />
+			</geometry>
+		</visual>
+
+		<collision name='rear_right_wheel_1_link'>
+			<origin xyz="-0.0 0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='rear_right_wheel_2_link'>
+			<origin xyz="-0.07 0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='rear_right_box_1_link'>
+			<origin xyz="-0.035 0.012 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.07 0.041 0.0696" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="rear_flipper_right_joint" type="revolute">
+		<origin xyz="-0.099914 -0.1132 0.00012856" rpy="0 0 0" />
+		<parent link="base_link" />
+		<child link="rear_flipper_right" />
+		<axis xyz="0 1 0" />
+		<limit lower="-4" upper="4" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="rear_flipper_right">
+		<mu1>100.0</mu1>
+		<mu2>100.0</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<gravity>1</gravity>
+		<maxContacts>2</maxContacts>
+		<material>Gazebo/DarkGrey</material>
+	</gazebo>
+
+	<!-- ********** REAR RIGHT FLIPPER LINK ********** -->
+
+	<!-- ********** REAR LEFT FLIPPER LINK ********** -->
+
+	<link name="rear_flipper_left">
+		<!-- <inertial>
+			<origin xyz="-0.039262 -0.01033 0.00013791" rpy="0 0 0" />
+    <mass value="2.0" />
+    <inertia
+        ixx="0.0008184"
+        ixy="0.000046196"
+        ixz="-0.00000042342"
+        iyy="0.0029431"
+        iyz="0.00000032476"
+        izz="0.00228085" />
+</inertial> -->
+
+		<xacro:inertial_box mass="${flipper_mass}" x="0.139577" y="0.045" z="0.06958">
+			<origin xyz="-0.039262 -0.01033 0.00013791" rpy="0 0 0" />
+		</xacro:inertial_box>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="${mesh_dir}rear_flipper_left.STL" />
+			</geometry>
+		</visual>
+
+		<collision name='rear_left_wheel_1_link'>
+			<origin xyz="-0.0 -0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='rear_left_wheel_2_link'>
+			<origin xyz="-0.07 -0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='rear_left_box_1_link'>
+			<origin xyz="-0.035 -0.012 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.07 0.041 0.0696" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="rear_flipper_left_joint" type="revolute">
+		<origin xyz="-0.099909 0.1132 -0.00012477" rpy="0 0 0" />
+		<parent link="base_link" />
+		<child link="rear_flipper_left" />
+		<axis xyz="0 1 0" />
+		<limit lower="-4" upper="4" effort="1.96" velocity="1.0" />
+	</joint>
+
+	<gazebo reference="rear_flipper_left">
+		<mu1>100.0</mu1>
+		<mu2>100.0</mu2>
+		<kp value="10000000.0" />
+		<kd value="1.0" />
+		<fdir1 value="0 1 0" />
+		<gravity>1</gravity>
+		<maxContacts>2</maxContacts>
+		<material>Gazebo/DarkGrey</material>
+	</gazebo>
+	<!-- ********** REAR LEFT FLIPPER LINK ********** -->
+  <!-- Transmission for ros2_control -->
+  <!-- <transmission name="front_left_flipper_transmission">
+    <type>transmission_interface/SimpleTransmission</type>
+    <actuator name="front_left_flipper_motor"/>
+    <joint name="front_left_flipper_joint"/>
+    <mechanicalReduction>1</mechanicalReduction>
+  </transmission> -->
+
+  <!-- ros2_control configuration -->
+	 <ros2_control name="GazeboSystem" type="system">
+		<hardware>
+            <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+		</hardware>
+
+		<joint name="front_left_flipper_joint">
+			<command_interface name="position">
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+			</command_interface>
+			<state_interface name="position" />
+		</joint>
+  </ros2_control>
+
+
+	<gazebo>
+		<plugin name="gz_ros2_control::GazeboSimROS2ControlPlugin" filename="libgz_ros2_control-system.so">
+			<robot_param>robot_description</robot_param>
+			<robot_param_node>robot_state_publisher</robot_param_node>
+			<parameters>$(find mmtr_description)/config/flipper_controller.yaml</parameters>
+		</plugin>
+	</gazebo>
+</robot>

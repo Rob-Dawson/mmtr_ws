@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"  name="mmtr">
+
+    <xacro:include filename="mmtr_core.xacro" />
+    <!-- <xacro:include filename="gazebo_control.xacro"/> -->
+</robot>
