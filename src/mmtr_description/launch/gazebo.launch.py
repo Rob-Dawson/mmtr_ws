@@ -38,7 +38,7 @@ def generate_launch_description():
         name="GZ_SIM_RESOURCE_PATH", 
         value=[FindPackageShare("mmtr_description"), "/meshes"]
     )
-    default_world=os.path.join(mmtr_description_dir, 'worlds', 'empty.world')
+    default_world=os.path.join(mmtr_description_dir, 'worlds', 'empty.sdf')
     world = LaunchConfiguration('world')
     world_arg = DeclareLaunchArgument('world', default_value=default_world, description='World to load')
     gazebo = IncludeLaunchDescription(
@@ -55,7 +55,11 @@ def generate_launch_description():
         package="ros_gz_bridge",
         executable="parameter_bridge",
         arguments=[
-            "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"
+            "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
+            "/imu@sensor_msgs/msg/Imu[gz.msgs.IMU"
+        ],
+        remappings=[
+            ("/imu", "imu/out")
         ]
     )
 
