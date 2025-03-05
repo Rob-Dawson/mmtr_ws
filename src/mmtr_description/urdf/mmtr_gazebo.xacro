@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mmtr">
+
+    <gazebo reference="base_link">
+        <self_collide>1</self_collide>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp value="10.0" />
+        <kd value="1.0" />
+        <fdir1 value="0 1 0" />
+        <maxContacts>2</maxContacts>
+        <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <gazebo reference="front_flipper_left">
+        <self_collide>1</self_collide>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp value="10.0" />
+        <kd value="1.0" />
+        <fdir1 value="0 1 0" />
+        <maxContacts>2</maxContacts>
+        <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <gazebo reference="front_flipper_right">
+        <self_collide>1</self_collide>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp value="10.0" />
+        <kd value="1.0" />
+        <fdir1 value="0 1 0" />
+        <maxContacts>2</maxContacts>
+        <material>Gazebo/Grey</material>
+    </gazebo>
+
+
+    <gazebo reference="rear_flipper_right">
+        <self_collide>1</self_collide>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp value="10.0" />
+        <kd value="1.0" />
+        <fdir1 value="0 1 0" />
+        <maxContacts>2</maxContacts>
+        <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <gazebo reference="rear_flipper_left">
+        <self_collide>1</self_collide>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp value="10.0" />
+        <kd value="1.0" />
+        <fdir1 value="0 1 0" />
+        <maxContacts>2</maxContacts>
+        <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <gazebo reference="imu_link">
+        <sensor name="imu" type="imu">
+            <always_on>true</always_on>
+            <update_rate>100</update_rate>
+            <gz_frame_id>imu_link</gz_frame_id>
+            <topic>imu</topic>
+            <imu>
+                <angular_velocity>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>2e-4</stddev>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>2e-4</stddev>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>2e-4</stddev>
+                        </noise>
+                    </z>
+                </angular_velocity>
+                <linear_acceleration>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>1.7e-2</stddev>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>1.7e-2</stddev>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>1.7e-2</stddev>
+                        </noise>
+                    </z>
+                </linear_acceleration>
+            </imu>
+            <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu" />
+        </sensor>
+    </gazebo>
+
+
+    <gazebo>
+        <plugin name="gz_ros2_control::GazeboSimROS2ControlPlugin"
+            filename="libgz_ros2_control-system.so">
+            <robot_param>robot_description</robot_param>
+            <robot_param_node>robot_state_publisher</robot_param_node>
+            <parameters>$(find mmtr_description)/config/flipper_controller.yaml</parameters>
+        </plugin>
+    </gazebo>
+
+
+    <gazebo>
+        <plugin name="gz::sim::systems::TrackedVehicle" filename="gz-sim-tracked-vehicle-system">
+            <left_track>
+                <link>front_flipper_left</link>
+            </left_track>
+            <left_track>
+                <link>rear_flipper_left</link>
+            </left_track>
+
+            <right_track>
+                <link>front_flipper_right</link>
+            </right_track>
+            <right_track>
+                <link>rear_flipper_right</link>
+            </right_track>
+
+            <tracks_separation>0.230</tracks_separation>
+            <tracks_height>0.6958</tracks_height>
+            <steering_efficency>1.0</steering_efficency>
+            <debug>0</debug>
+        </plugin>
+    </gazebo>
+    <gazebo>
+        <plugin name="gz::sim::systems::TrackController" filename="gz-sim-track-controller-system">
+            <link>front_flipper_left</link>
+            <min_velocity>-1.0</min_velocity>
+            <max_velocity>1.0</max_velocity>
+            <debug>0</debug>
+        </plugin>
+    </gazebo>
+    <gazebo>
+
+        <plugin name="gz::sim::systems::TrackController" filename="gz-sim-track-controller-system">
+            <link>front_flipper_right</link>
+            <min_velocity>-1.0</min_velocity>
+            <max_velocity>1.0</max_velocity>
+            <debug>0</debug>
+        </plugin>
+    </gazebo>
+    <gazebo>
+
+        <plugin name="gz::sim::systems::TrackController" filename="gz-sim-track-controller-system">
+            <link>rear_flipper_left</link>
+            <min_velocity>-1.0</min_velocity>
+            <max_velocity>1.0</max_velocity>
+            <debug>0</debug>
+        </plugin>
+    </gazebo>
+
+    <gazebo>
+        <plugin name="gz::sim::systems::TrackController" filename="gz-sim-track-controller-system">
+            <link>rear_flipper_right</link>
+            <min_velocity>-1.0</min_velocity>
+            <max_velocity>1.0</max_velocity>
+            <debug>0</debug>
+        </plugin>
+    </gazebo>
+
+
+    <!-- W -->
+    <gazebo>
+        <plugin filename="gz-sim-triggered-publisher-system"
+            name="gz::sim::systems::TriggeredPublisher">
+            <input type="gz.msgs.Int32" topic="/keyboard/keypress">
+                <match field="data">87</match>
+            </input>
+            <output type="gz.msgs.Twist" topic="/model/mmtr/cmd_vel">
+                linear: {x: 0.5}, angular: {z: 0.0}
+            </output>
+        </plugin>
+
+        <!-- S -->
+        <plugin filename="gz-sim-triggered-publisher-system"
+            name="gz::sim::systems::TriggeredPublisher">
+            <input type="gz.msgs.Int32" topic="/keyboard/keypress">
+                <match field="data">83</match>
+            </input>
+            <output type="gz.msgs.Twist" topic="/model/mmtr/cmd_vel">
+                linear: {x: 0.0}, angular: {z: 0.0}
+            </output>
+        </plugin>
+
+
+        <!-- A -->
+        <plugin filename="gz-sim-triggered-publisher-system"
+            name="gz::sim::systems::TriggeredPublisher">
+            <input type="gz.msgs.Int32" topic="/keyboard/keypress">
+                <match field="data">65</match>
+            </input>
+            <output type="gz.msgs.Twist" topic="/model/mmtr/cmd_vel">
+                linear: {x: 0.0}, angular: {z: 0.5}
+            </output>
+        </plugin>
+
+        <!-- D -->
+        <plugin filename="gz-sim-triggered-publisher-system"
+            name="gz::sim::systems::TriggeredPublisher">
+            <input type="gz.msgs.Int32" topic="/keyboard/keypress">
+                <match field="data">68</match>
+            </input>
+            <output type="gz.msgs.Twist" topic="/model/mmtr/cmd_vel">
+                linear: {x: 0.0}, angular: {z: -0.5}
+            </output>
+        </plugin>
+        <!-- X -->
+        <plugin filename="gz-sim-triggered-publisher-system"
+            name="gz::sim::systems::TriggeredPublisher">
+            <input type="gz.msgs.Int32" topic="/keyboard/keypress">
+                <match field="data">88</match>
+            </input>
+            <output type="gz.msgs.Twist" topic="/model/mmtr/cmd_vel">
+                linear: {x: -0.5}, angular: {z: -0.0}
+            </output>
+        </plugin>
+    </gazebo>
+
+</robot>
