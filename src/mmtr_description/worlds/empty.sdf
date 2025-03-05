@@ -4,6 +4,8 @@
       <max_step_size>0.001</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
+
+
     <plugin
       filename="gz-sim-physics-system"
       name="gz::sim::systems::Physics">
@@ -25,7 +27,7 @@
       filename="gz-sim-contact-system"
       name="gz::sim::systems::Contact">
     </plugin>
-
+       
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -68,30 +70,34 @@
     </model>
 
     <model name='wall'>
-    <static>true</static>
-    <pose>5 0 0 0 0 0</pose><!--pose relative to the world-->
-    <link name='box'>
+      <static>true</static>
+      <pose>5 0 0 0 0 0</pose><!--pose
+      relative to the world-->
+      <link name='box'>
         <visual name='visual'>
-            <geometry>
-                <box>
-                    <size>0.5 10.0 2.0</size>
-                </box>
-            </geometry>
-            <!--let's add color to our link-->
-            <material>
-                <ambient>0.0 0.0 1.0 1</ambient>
-                <diffuse>0.0 0.0 1.0 1</diffuse>
-                <specular>0.0 0.0 1.0 1</specular>
-            </material>
+          <geometry>
+            <box>
+              <size>0.5 10.0 2.0</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.0 0.0 1.0 1</ambient>
+            <diffuse>0.0 0.0 1.0 1</diffuse>
+            <specular>0.0 0.0 1.0 1</specular>
+          </material>
         </visual>
         <collision name='collision'>
-            <geometry>
-                <box>
-                    <size>0.5 10.0 2.0</size>
-                </box>
-            </geometry>
+          <geometry>
+            <box>
+              <size>0.5 10.0 2.0</size>
+            </box>
+          </geometry>
         </collision>
-    </link>
-</model>
+      </link>
+    </model>
+
+
   </world>
+
+
 </sdf>
