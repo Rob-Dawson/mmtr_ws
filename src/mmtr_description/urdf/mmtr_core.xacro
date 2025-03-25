@@ -323,6 +323,40 @@
 		<axis xyz="0 0 0" />
 	</joint>
 
+
+	<link name="laser_link">
+		<inertial>
+			<origin xyz="-0.011945780406062 -0.000381929217680526 -0.0170649378129477" rpy="0 0 0" />
+			<mass value="0.073084435549317" />
+			<inertia ixx="1.96074931730795E-05" ixy="-3.62091076640009E-07"
+				ixz="4.28230084046735E-07"
+				iyy="2.40983835136327E-05" iyz="1.50180909250652E-08"
+				izz="4.14184164228595E-05" />
+		</inertial>
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254" />
+
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+
+				<box size="0.01684 0.03111 0.00254" />
+
+			</geometry>
+		</collision>
+	</link>
+	<joint name="laser_joint" type="fixed">
+		<origin xyz="-0.0050526 -0.0023221 0.1208" rpy="0 0 3.14" />
+		<parent link="base_link" />
+		<child link="laser_link" />
+		<axis xyz="0 0 0" />
+	</joint>
+
+
 	<!-- Transmission for ros2_control -->
 	<!-- <transmission name="front_left_flipper_transmission">
     <type>transmission_interface/SimpleTransmission</type>
@@ -347,8 +381,6 @@
 			<state_interface name="position" />
 		</joint>
 	</ros2_control>
-
-
 
 
 </robot>
