@@ -11,7 +11,7 @@ from launch.actions import SetEnvironmentVariable
 
 
 def generate_launch_description():
-
+    use_sim_time = LaunchConfiguration('use_sim_time')
     mmtr_description_dir = get_package_share_directory("mmtr_description")
 
     model_arg = DeclareLaunchArgument(name="model", default_value=os.path.join(
@@ -50,6 +50,12 @@ def generate_launch_description():
         launch_arguments={
             "gz_args": ['r -v4 ', world], 'on_exit_shutdown':'true'}.items()
     )
+    declare_use_sim_time_cmd = DeclareLaunchArgument(
+        name='use_sim_time',
+        default_value='True',
+        description='Use simulation (Gazebo) clock if true')
+
+
 
     gz_ros2_bridge = Node(
         package="ros_gz_bridge",
@@ -71,7 +77,7 @@ def generate_launch_description():
                        arguments=[
                            "-name", "mmtr",
                            "-topic", "robot_description",
-                           '-z', '0.006'
+                           '-z', '0.02'
 
                        ],
                        output="screen")
@@ -118,7 +124,7 @@ def generate_launch_description():
         executable="ekf_node",
         name="ekf_filter_node",
         output="screen",
-        parameters=[os.path.join(get_package_share_directory("mmtr_description"), "config", "ekf.yaml")],
+        parameters=[os.path.join(get_package_share_directory("mmtr_description"), "config", "ekf.yaml"),{'use_sim_time': use_sim_time}],
     )
 
 
@@ -134,9 +140,8 @@ def generate_launch_description():
     ld.add_action(model_arg)
     ld.add_action(world_arg)
     ld.add_action(set_gazebo_model_path)
-
+    ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(gazebo)
-    ld.add_action(robot_state_publisher)
     ld.add_action(spawn_robot)
     ld.add_action(joint_state_broadcaster_node)
     ld.add_action(flipper_controller)
@@ -144,10 +149,11 @@ def generate_launch_description():
 
 
     ld.add_action(odom_tf)
-    ld.add_action(static_transform_publisher)
+    # ld.add_action(static_transform_publisher)
     ld.add_action(robot_localization)
+    ld.add_action(robot_state_publisher)
     
-    ld.add_action(imu_republisher_cpp)
+    # ld.add_action(imu_republisher_cpp)
 
 
 
