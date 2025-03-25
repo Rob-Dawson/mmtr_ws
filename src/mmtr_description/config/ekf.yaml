@@ -9,13 +9,13 @@ ekf_filter_node:
      
       map_frame: map              
       odom_frame: odom            
-      base_link_frame: base_footprint_ekf  
+      base_link_frame: base_footprint
       world_frame: odom           
 
       
 
       # IMU Configuration
-      imu0: imu_ekf
+      imu0: imu/out
       imu0_config: [false, false, false,
                     false, false, true,
                     false, false, false,
