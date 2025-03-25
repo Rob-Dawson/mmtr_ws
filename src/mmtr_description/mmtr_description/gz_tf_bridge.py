@@ -29,7 +29,7 @@ class OdomTFBroadcaster(Node):
         # Set header information
         tf_msg.header.stamp = self.get_clock().now().to_msg()
         tf_msg.header.frame_id = "odom"  # Parent frame (adjust if needed)
-        tf_msg.child_frame_id = "base_link"  # Child frame (adjust if needed)
+        tf_msg.child_frame_id = "base_footprint_raw"  # Child frame (adjust if needed)
 
         # Set translation (position from odometry)
         tf_msg.transform.translation.x = msg.pose.pose.position.x
