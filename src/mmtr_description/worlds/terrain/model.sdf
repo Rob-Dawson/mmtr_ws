@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<sdf version="1.7">
+  <model name="custom_ground">
+    <static>true</static>
+    <link name="link">
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>file:///home/rob/mmtr_ws/src/mmtr_description/worlds/terrain/meshes/map.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>file:///home/rob/mmtr_ws/src/mmtr_description/worlds/terrain/meshes/map.dae</uri>
+          </mesh>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

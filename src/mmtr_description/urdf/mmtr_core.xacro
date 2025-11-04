@@ -1,0 +1,466 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mmtr">
+	<plugin name="gazebo_ros_paths" filename="libgazebo_ros_paths_plugin.so" />
+
+	<xacro:property name="mesh_dir" value="file://$(find mmtr_description)/meshes/" />
+	<!-- <xacro:include filename="$(find mmtr_description)/urdf/mmtr_ros_2_control.xacro" /> -->
+	<xacro:include filename="mmtr_gazebo.xacro" />
+	<xacro:include filename="inertial_macros.xacro" />
+
+	<!-- ********** MACROS ********** -->
+	<xacro:property name="mass" value="1.5" />
+	<xacro:property name="flipper_mass" value="0.375" />
+	<xacro:property name="flipper_length" value="0.12932" />
+	<xacro:property name="flipper_width" value="0.041" />
+
+	<xacro:property name="flipper_radius" value="0.06958" />
+
+	<!-- ********** MACROS ********** -->
+
+	<!-- ********** BASE FOOTPRINT ********** -->
+	<link name="base_footprint" />
+
+	<joint name="chassis_joint" type="fixed">
+		<parent link="base_footprint" />
+		<child link="base_link" />
+		<origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+	</joint>
+	<!-- ********** BASE FOOTPRINT ********** -->
+
+	<!-- ********** BASE LINK ********** -->
+	<link name="base_link">
+		<inertial>
+			<origin xyz="-4.4639E-06 -1.1907E-06 -0.0036869" rpy="0 0 0" />
+			<mass value="3.0" />
+			<inertia
+				ixx="0.0055239"
+				ixy="9.7788E-07"
+				ixz="1.5028E-07"
+				iyy="0.0215439"
+				iyz="2.2009E-07"
+				izz="0.0251589" />
+		</inertial>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="${mesh_dir}base_link.STL" />
+			</geometry>
+		</visual>
+
+		<collision name="box">
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.2 0.156 0.05932" />
+			</geometry>
+		</collision>
+
+		<collision name="rear_curved">
+			<origin xyz="-0.1 0 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.02966" length="0.156" />
+			</geometry>
+		</collision>
+
+		<collision name="front_curved">
+			<origin xyz="0.1 0 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.02966" length="0.156" />
+			</geometry>
+		</collision>
+	</link>
+	<!-- ********** CHASSIS LINK ********** -->
+
+	<!-- <xacro:add_bump_sensor
+		link_name="front_flipper_right"
+		collision_name="right_wheel_1_link"
+		sensor_name="bump_sensor_flipper" /> -->
+
+
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+
+
+	<link name="front_flipper_left">
+		<inertial>
+			<origin xyz="0.039257 -0.01033 -0.00014149" rpy="0 0 0" />
+			<mass value="2.0" />
+			<inertia
+				ixx="0.0008184"
+				ixy="-4.6196E-05"
+				ixz="4.2342E-07"
+				iyy="0.0029431"
+				iyz="3.2476E-07"
+				izz="0.00228085" />
+		</inertial>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh
+					filename="${mesh_dir}front_flipper_left.STL" />
+			</geometry>
+		</visual>
+
+		<collision name='flipper'>
+			<origin xyz="-0.0 -0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='left_wheel_2_link'>
+			<origin xyz="0.07 -0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='left_box_1_link'>
+			<origin xyz="0.035 -0.012 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.07 0.041 0.0696" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="front_left_flipper_joint" type="revolute">
+		<origin xyz="0.099914 0.1132 0.00012834" rpy="0 0 0" />
+		<parent link="base_link" />
+		<child link="front_flipper_left" />
+		<axis xyz="0 1 0" />
+		<limit lower="-4" upper="4" effort="60.96" velocity="1.0" />
+	</joint>
+
+	<!-- <gazebo reference="front_flipper_link">
+		<sensor name="flipper_contact_sensor" type="contact">
+			
+			<always_on>true</always_on>
+			<update_rate>100</update_rate>
+			<contact>
+			  <collision>flipper</collision>
+			</contact>
+			<topic>/contact_sensor</topic>
+		  </sensor>
+	</gazebo> -->
+
+
+	
+
+	<!-- ********** LEFT FLIPPER LINK ********** -->
+
+
+	<!-- ********** RIGHT FLIPPER LINK ********** -->
+	<link name="front_flipper_right">
+		<inertial>
+			<origin xyz="0.039266 0.01033 0.00013504" rpy="0 0 0" />
+			<mass value="2.0" />
+			<inertia
+				ixx="0.0008184"
+				ixy="0.000046196"
+				ixz="-0.00000042342"
+				iyy="0.0029431"
+				iyz="0.00000032476"
+				izz="0.00228085" />
+		</inertial>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="${mesh_dir}front_flipper_right.STL" />
+			</geometry>
+		</visual>
+
+		<collision name='right_wheel_1_link'>
+			<origin xyz="-0.0 0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='right_wheel_2_link'>
+			<origin xyz="0.07 0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='right_box_1_link'>
+			<origin xyz="0.035 0.012 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.07 0.041 0.0696" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="front_right_flipper_joint" type="revolute">
+		<origin xyz="0.099905 -0.1132 -0.00012189" rpy="0 0 0" />
+		<parent link="base_link" />
+		<child link="front_flipper_right" />
+		<axis xyz="0 1 0" />
+		<limit lower="-4" upper="4" effort="60.96" velocity="1.0" />
+	</joint>
+	<!-- ********** RIGHT FLIPPER LINK ********** -->
+
+
+	<!-- ********** REAR RIGHT FLIPPER LINK ********** -->
+	<link name="rear_flipper_right">
+		<inertial>
+			<origin xyz="-0.039256 0.01033 -0.0001417" rpy="0 0 0" />
+			<mass value="2.0" />
+			<inertia
+				ixx="0.0008184"
+				ixy="0.000046196"
+				ixz="-0.00000042342"
+				iyy="0.0029431"
+				iyz="0.00000032476"
+				izz="0.00228085" />
+		</inertial>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="${mesh_dir}rear_flipper_right.STL" />
+			</geometry>
+		</visual>
+
+		<collision name='rear_right_wheel_1_link'>
+			<origin xyz="-0.0 0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='rear_right_wheel_2_link'>
+			<origin xyz="-0.07 0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='rear_right_box_1_link'>
+			<origin xyz="-0.035 0.012 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.07 0.041 0.0696" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="rear_right_flipper_joint" type="revolute">
+		<origin xyz="-0.099914 -0.1132 0.00012856" rpy="0 0 0" />
+		<parent link="base_link" />
+		<child link="rear_flipper_right" />
+		<axis xyz="0 1 0" />
+		<limit lower="-4" upper="4" effort="60.96" velocity="1.0" />
+	</joint>
+	<!-- ********** REAR RIGHT FLIPPER LINK ********** -->
+
+
+	<!-- ********** REAR LEFT FLIPPER LINK ********** -->
+	<link name="rear_flipper_left">
+		<inertial>
+			<origin xyz="-0.039262 -0.01033 0.00013791" rpy="0 0 0" />
+			<mass value="2.0" />
+			<inertia
+				ixx="0.0008184"
+				ixy="0.000046196"
+				ixz="-0.00000042342"
+				iyy="0.0029431"
+				iyz="0.00000032476"
+				izz="0.00228085" />
+		</inertial>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<mesh filename="${mesh_dir}rear_flipper_left.STL" />
+			</geometry>
+		</visual>
+
+		<collision name='rear_left_wheel_1_link'>
+			<origin xyz="-0.0 -0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='rear_left_wheel_2_link'>
+			<origin xyz="-0.07 -0.012 0" rpy="1.57 0 0" />
+			<geometry>
+				<cylinder radius="0.0348" length="0.041" />
+			</geometry>
+		</collision>
+
+		<collision name='rear_left_box_1_link'>
+			<origin xyz="-0.035 -0.012 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.07 0.041 0.0696" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="rear_left_flipper_joint" type="revolute">
+		<origin xyz="-0.099909 0.1132 -0.00012477" rpy="0 0 0" />
+		<parent link="base_link" />
+		<child link="rear_flipper_left" />
+		<axis xyz="0 1 0" />
+		<limit lower="-4" upper="4" effort="60.96" velocity="1.0" />
+	</joint>
+	<!-- ********** REAR LEFT FLIPPER LINK ********** -->
+
+	<!-- ********** IMU LINK ********** -->
+	<link name="imu_link">
+
+		<inertial>
+			<origin xyz="-0.0 0.0 0.0" rpy="0 0 0" />
+			<mass value="0.05" />
+			<inertia
+				ixx="4.06e-06" ixy="0.0" ixz="0.0"
+				iyy="1.21e-06" iyz="0.0"
+				izz="5.21e-06" />
+		</inertial>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254" />
+			</geometry>
+		</collision>
+
+	</link>
+
+	<joint name="imu_joint" type="fixed">
+		<parent link="base_link" />
+		<child link="imu_link" />
+		<origin xyz="0.0 0.0 0.015" rpy="0.0 0.0 0.0" />
+		<axis xyz="0 0 0" />
+	</joint>
+
+	<!-- ********** Magnetometer LINK ********** -->
+	<link name="mag_link">
+
+		<inertial>
+			<origin xyz="-0.0 0.0 0.0" rpy="0 0 0" />
+			<mass value="0.05" />
+			<inertia
+				ixx="4.06e-06" ixy="0.0" ixz="0.0"
+				iyy="1.21e-06" iyz="0.0"
+				izz="5.21e-06" />
+		</inertial>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254" />
+			</geometry>
+		</visual>
+
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254" />
+			</geometry>
+		</collision>
+
+	</link>
+
+
+
+	<joint name="mag_joint" type="fixed">
+		<parent link="base_link" />
+		<child link="mag_link" />
+		<origin xyz="0.0 0.0 0.015" rpy="0.0 0.0 0.0" />
+		<axis xyz="0 0 0" />
+	</joint>
+
+
+	<link name="laser_link">
+		<inertial>
+			<origin xyz="-0.011945780406062 -0.000381929217680526 -0.0170649378129477" rpy="0 0 0" />
+			<mass value="0.073084435549317" />
+			<inertia ixx="1.96074931730795E-05" ixy="-3.62091076640009E-07"
+				ixz="4.28230084046735E-07"
+				iyy="2.40983835136327E-05" iyz="1.50180909250652E-08"
+				izz="4.14184164228595E-05" />
+		</inertial>
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+				<box size="0.01684 0.03111 0.00254" />
+
+			</geometry>
+		</visual>
+		<!-- <collision>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+
+				<box size="0.01684 0.03111 0.00254" />
+
+			</geometry>
+		</collision> -->
+	</link>
+	<joint name="laser_joint" type="fixed">
+		<origin xyz="-0.0050526 -0.0023221 0.1208" rpy="0 0 3.14" />
+		<parent link="base_link" />
+		<child link="laser_link" />
+		<axis xyz="0 0 0" />
+	</joint>
+
+
+	<!-- Transmission for ros2_control -->
+	<!-- <transmission name="front_left_flipper_transmission">
+    <type>transmission_interface/SimpleTransmission</type>
+    <actuator name="front_left_flipper_motor"/>
+    <joint name="front_left_flipper_joint"/>
+    <mechanicalReduction>1</mechanicalReduction>
+  </transmission> -->
+
+	<!-- ros2_control configuration -->
+
+
+	<ros2_control name="GazeboSystem" type="system">
+		<hardware>
+			<plugin>gz_ros2_control/GazeboSimSystem</plugin>
+		</hardware>
+
+		<joint name="front_left_flipper_joint">
+			<command_interface name="position">
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+			</command_interface>
+			<state_interface name="position" />
+		</joint>
+
+		<joint name="front_right_flipper_joint">
+			<command_interface name="position">
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+			</command_interface>
+			<state_interface name="position" />
+		</joint>
+
+		<joint name="rear_left_flipper_joint">
+			<command_interface name="position">
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+			</command_interface>
+			<state_interface name="position" />
+		</joint>
+
+		<joint name="rear_right_flipper_joint">
+			<command_interface name="position">
+				<param name="min">-3.0</param>
+				<param name="max">3.0</param>
+			</command_interface>
+			<state_interface name="position" />
+		</joint>
+	</ros2_control>
+
+
+</robot>

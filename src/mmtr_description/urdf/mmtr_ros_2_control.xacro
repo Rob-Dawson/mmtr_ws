@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mmtr">
+    <ros2_control name="GazeboSystem" type="system">
+        <hardware>
+            <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+        </hardware>
+
+<joint name="front_flipper_left_joint">
+    <param name="pos_kp">1.0</param> <!-- Adjusted Kp -->
+    <param name="pos_ki">0.1</param>  <!-- Adjusted Ki -->
+    <param name="pos_kd">0.1</param>  <!-- Adjusted Kd -->
+    <param name="pos_max_integral_error">0.2</param>
+    <command_interface name="position_pid">
+        <param name="min">-3.0</param>
+        <param name="max">3.0</param>
+    </command_interface>
+    <state_interface name="position" />
+    <state_interface name="effort" />
+    <state_interface name="velocity" />
+</joint>
+
+        <joint name="front_flipper_right_joint">
+    <param name="pos_kp">1.0</param> <!-- Adjusted Kp -->
+    <param name="pos_ki">0.1</param>  <!-- Adjusted Ki -->
+    <param name="pos_kd">0.1</param>  <!-- Adjusted Kd -->
+    <param name="pos_max_integral_error">0.2</param>
+            <command_interface name="position_pid">
+                <param name="min">-3.0</param>
+                <param name="max">3.0</param>
+            </command_interface>
+            <state_interface name="position" />
+            <state_interface name="effort" />
+            <state_interface name="velocity" />
+
+        </joint>
+
+        <joint name="rear_flipper_left_joint">
+    <param name="pos_kp">1.0</param> <!-- Adjusted Kp -->
+    <param name="pos_ki">0.1</param>  <!-- Adjusted Ki -->
+    <param name="pos_kd">0.1</param>  <!-- Adjusted Kd -->
+    <param name="pos_max_integral_error">0.2</param>
+            <command_interface name="position_pid">
+                <param name="min">-3.0</param>
+                <param name="max">3.0</param>
+            </command_interface>
+            <state_interface name="position" />
+            <state_interface name="effort" />
+            <state_interface name="velocity" />
+
+        </joint>
+
+        <joint name="rear_flipper_right_joint">
+    <param name="pos_kp">1.0</param> <!-- Adjusted Kp -->
+    <param name="pos_ki">0.1</param>  <!-- Adjusted Ki -->
+    <param name="pos_kd">0.1</param>  <!-- Adjusted Kd -->
+    <param name="pos_max_integral_error">0.2</param>
+            <command_interface name="position_pid">
+                <param name="min">-3.0</param>
+                <param name="max">3.0</param>
+            </command_interface>
+            <state_interface name="position" />
+            <state_interface name="effort" />
+            <state_interface name="velocity" />
+
+        </joint>
+    </ros2_control>
+    
+    <gazebo>
+        <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+            <robot_param>robot_description</robot_param>
+            <robot_param_node>robot_state_publisher</robot_param_node>
+            <parameters>$(find mmtr_flipper_controller)/config/flipper_joint.yaml</parameters>
+        </plugin>
+    </gazebo>
+</robot>

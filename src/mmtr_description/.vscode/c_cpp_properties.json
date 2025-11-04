@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/ros/**",
+                "/usr/include",
+                "/usr/include/gz",
+                "/usr/include/gz/utils",
+                "/usr/include/gz/utils2/gz/utils",
+                "/usr/include/gz/sim8",
+                "/usr/include/gz/math7",
+                "/usr/include/gz/common5",
+                "/usr/include/gz/msgs10",
+                "/usr/include/gz/transport13",
+                "/usr/include/gz/sdformat14",
+                "/usr/local/include",
+                "/usr/include/gz/plugin2"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
