@@ -1,0 +1,9 @@
+# VSCode settings and properties
+.vscode/
+.settings/
+properties.json
+build
+install
+log
+
+__pycache__

@@ -24,6 +24,8 @@ class imu_buffer(Node):
         self.imu_sub = self.create_subscription(
             Vector3Stamped, "/jerk", self.imu_cb, 200
         )
+
+
         self.imu_buffer = deque()
 
     def imu_cb(self, msg: Vector3Stamped):
@@ -43,6 +45,8 @@ class imu_buffer(Node):
         self.imu_buffer.append(s)
         while self.imu_buffer and (imu_time - self.imu_buffer[0].t_ns) > int(2.0 * 1e9):
             self.imu_buffer.popleft()
+
+        
 
 
 def main():
