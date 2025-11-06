@@ -77,11 +77,11 @@ class RewindOdom(Node):
         for s in self.pose_buffer:
             if s.t_ns <= collision_event_time_ns:
                 before_t_event = s
-            if s.t_ns >= collision_event_time_ns:
+            elif s.t_ns >= collision_event_time_ns:
                 after_t_event = s
                 break
         if before_t_event is not None and after_t_event is not None:
-            if before_t_event == after_t_event:
+            if before_t_event.t_ns == after_t_event.t_ns:
                 pass
                 #ukf set_pose
             else:
