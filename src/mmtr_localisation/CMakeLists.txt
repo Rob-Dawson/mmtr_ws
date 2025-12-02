@@ -21,6 +21,9 @@ install(PROGRAMS
   ${PROJECT_NAME}/imu_calibration.py
   ${PROJECT_NAME}/odom_covariance_override.py
   ${PROJECT_NAME}/magnetometer_frame_conversion.py
+  ${PROJECT_NAME}/rewind_odom.py
+  ${PROJECT_NAME}/pure_pursuit.py
+  ${PROJECT_NAME}/auto_teleop.py
 
 DESTINATION lib/${PROJECT_NAME})
 

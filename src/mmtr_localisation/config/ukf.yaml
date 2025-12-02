@@ -88,7 +88,7 @@ ukf_filter_node:
     base_link_frame: base_footprint
     world_frame: mmtr/odom
 
-    imu0: /imu/data_zero_yaw
+    imu0: /imu/data
     imu0_config: [false, false, false,
                   false, false, true,
                   false, false, false,
@@ -114,12 +114,22 @@ ukf_filter_node:
 
 
     #ZUPT
-    twist0: zupt/twist
+    # twist0: zupt/twist
+    # twist0_config: [false, false, false,  # Position: XYZ
+    #                false, false, false,   # Orientation: roll, pitch, yaw,
+    #                true, true, false,   # Linear Velocity: XYZ
+    #                true, true, true,   # Angular Velocity: vroll, vpitch, vyaw
+    #                false, false, false]   # Linear Acceleration: XYZ
+
+    #This is called 
+    twist0: rewind/zero_twist
+    twist0_differential: false
+    twist0_queue_size: 5
     twist0_config: [false, false, false,  # Position: XYZ
-                   false, false, false,   # Orientation: roll, pitch, yaw,
-                   true, true, false,   # Linear Velocity: XYZ
-                   true, true, true,   # Angular Velocity: vroll, vpitch, vyaw
-                   false, false, false]   # Linear Acceleration: XYZ
+                    false, false, false,   # Orientation: roll, pitch, yaw,
+                    true, true, false,   # Linear Velocity: XYZ
+                    true, true, true,   # Angular Velocity: vroll, vpitch, vyaw
+                    false, false, false]   # Linear Acceleration: XYZ
 
     # process_noise_covariance: [ 
     #       1e-3, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,

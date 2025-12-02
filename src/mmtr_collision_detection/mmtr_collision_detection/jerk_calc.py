@@ -148,7 +148,7 @@ class jerk_calc(Node):
 
 
         jerk = Vector3Stamped()
-        jerk.header.stamp = msg.header
+        jerk.header.stamp = msg.header.stamp
         jerk.vector.x = float(j_corr[0])
         jerk.vector.y = float(j_corr[1])
         jerk.vector.z = float(j_corr[2])

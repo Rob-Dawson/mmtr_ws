@@ -43,7 +43,7 @@ class CollisionDetection(Node):
         self.imu_sub = self.create_subscription(
             Vector3Stamped, "/jerk", self.jerk_buffer, 200
         )
-        self.stop = self.create_publisher(Twist, "cmd_vel", 10)
+        self.stop = self.create_publisher(Twist, "/model/mmtr/cmd_vel", 10)
         self.imu_buffer = deque()
 
         ##Schmitt Trigger
@@ -129,6 +129,8 @@ class CollisionDetection(Node):
         self.last_fire_ns = t_event_ns
 
         # event message with proper ROS time
+        event = Time(nanoseconds=t_event_ns).to_msg()
+        self.get_logger().info(f"{event}")
         evt = CollisionEvent()
         evt.header.stamp = Time(nanoseconds=t_event_ns).to_msg()
         evt.header.frame_id = "base_link"

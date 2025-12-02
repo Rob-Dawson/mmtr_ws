@@ -3,8 +3,8 @@
 
     <gazebo reference="base_link">
         <self_collide>1</self_collide>
-        <mu1>5.0</mu1>
-        <mu2>5.0</mu2>
+        <mu1>0.6</mu1>
+        <mu2>0.6</mu2>
         <kp value="10000.0" />
         <kd value="100.0" />
         <maxContacts>2</maxContacts>
@@ -23,8 +23,8 @@
             <surface>
                 <friction>
                     <ode>
-                        <mu>5.0</mu>
-                        <mu2>5.0</mu2>
+                        <mu>0.6</mu>
+                        <mu2>0.6</mu2>
                     </ode>
                 </friction>
             </surface>
@@ -43,8 +43,8 @@
             <surface>
                 <friction>
                     <ode>
-                        <mu>5.0</mu>
-                        <mu2>5.0</mu2>
+                        <mu>0.6</mu>
+                        <mu2>0.6</mu2>
                     </ode>
                 </friction>
             </surface>
@@ -64,8 +64,8 @@
             <surface>
                 <friction>
                     <ode>
-                        <mu>5.0</mu>
-                        <mu2>5.0</mu2>
+                        <mu>0.6</mu>
+                        <mu2>0.6</mu2>
                     </ode>
                 </friction>
             </surface>
@@ -84,8 +84,8 @@
             <surface>
                 <friction>
                     <ode>
-                        <mu>5.0</mu>
-                        <mu2>5.0</mu2>
+                        <mu>0.6</mu>
+                        <mu2>0.6</mu2>
                     </ode>
                 </friction>
             </surface>

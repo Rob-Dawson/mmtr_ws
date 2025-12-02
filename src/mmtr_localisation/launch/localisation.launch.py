@@ -30,8 +30,8 @@ def generate_launch_description():
                     "use_mag": True,
                     "world_frame": "enu",
                     "publish_tf": False,
-                    "gain": 0.08,
-                    "zeta": 0.02,
+                    "gain": 0.15,
+                    "zeta": 0.08,
                 }
             ],
 
