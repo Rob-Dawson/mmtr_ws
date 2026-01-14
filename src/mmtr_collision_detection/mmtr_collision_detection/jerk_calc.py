@@ -74,14 +74,12 @@ class jerk_calc(Node):
         self.speed = abs(msg.twist.twist.linear.x)
 
     def imu_cb(self, msg: Imu):
-        # --- time (integer ns from header) ---
         t_ns = Time.from_msg(msg.header.stamp).nanoseconds
         if self.prev_t_ns is None:
             self.prev_t_ns = t_ns
             return
         dt = max(self.dt_min, (t_ns - self.prev_t_ns) * 1e-9)
 
-        # --- sensors ---
         accel = np.array([msg.linear_acceleration.x,
                           msg.linear_acceleration.y,
                           msg.linear_acceleration.z], dtype=float)
@@ -96,7 +94,6 @@ class jerk_calc(Node):
         Rwb = quat_to_Rwb(*q)
         g_b = Rwb.T @ self.g_world  # world -> body
 
-        # --- small LPF on gyro ---
         aw = 1.0 - math.exp(-2.0 * math.pi * self.fc_w * dt)
         aw = min(max(aw, 1e-3), 0.9)
         if self.omega_lp is None:
@@ -107,14 +104,11 @@ class jerk_calc(Node):
         # angular acceleration (filtered)
         ang_acc = np.zeros(3) if self.prev_omega is None else (omega - self.prev_omega) / dt
 
-        # --- lever-arm correction (centripetal only by default) ---
         a_rot = np.cross(omega, np.cross(omega, self.r))
         a_corr = accel - a_rot
 
-        # --- gravity removal ---
         f = a_corr - g_b
 
-        # --- LPF on specific force ---
         af = 1.0 - math.exp(-2.0 * math.pi * self.fc_f * dt)
         af = min(max(af, 1e-4), 0.9)
 
@@ -128,19 +122,16 @@ class jerk_calc(Node):
         flp   = af * f + (1.0 - af) * self.prev_flp
         j_raw = (flp - self.prev_flp) / dt
 
-        # --- subtract rotation-of-gravity term (midpoint) ---
         omega_mid = 0.5 * (omega + self.prev_omega)
         g_b_mid   = 0.5 * (g_b   + self.prev_g_b)
         oxgb      = np.cross(omega_mid, g_b_mid)
         j_corr    = j_raw - oxgb
         J         = float(np.linalg.norm(j_corr))
 
-        # optional turn-start gate (suppress triggers briefly on big alpha_z)
         if abs(ang_acc[2]) > 3.0:  # rad/s^2, tune
             self.turn_gate_until = (t_ns * 1e-9) + 0.08
         in_turn_start = (t_ns * 1e-9) < self.turn_gate_until  # (use later in detector)
 
-        # --- publish debug (stamped) ---
         self._pub_vec(self.pub_jraw,  msg.header.stamp, *j_raw)
         self._pub_vec(self.pub_oxgb,  msg.header.stamp, *oxgb)
         self._pub_vec(self.pub_jcorr, msg.header.stamp, *j_corr)
@@ -154,8 +145,6 @@ class jerk_calc(Node):
         jerk.vector.z = float(j_corr[2])
         self.pub_jerk.publish(jerk)
 
-
-        # --- update state (IMPORTANT) ---
         self.prev_flp   = flp
         self.prev_omega = omega
         self.prev_g_b   = g_b
