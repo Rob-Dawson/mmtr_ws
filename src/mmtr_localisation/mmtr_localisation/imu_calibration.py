@@ -2,7 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
-import time
+from rclpy.time import Time 
 class IMUCalibration(Node):
     def __init__(self):
         super().__init__("IMU_Calibration")
@@ -26,10 +26,9 @@ class IMUCalibration(Node):
         self.accel_z_error = None
 
         self.calibration_time = 5 #seconds
-        self.timer = self.create_timer(1, self.check_time)
         self.imu_calibrated = False
         self.elapsed_time = 0
-        self.start_time = time.time()
+        self.start_time = None
 
     def mean_error(self, gyro_x, gyro_y, gyro_z,
                    accel_x,accel_y,accel_z):
@@ -41,7 +40,9 @@ class IMUCalibration(Node):
         self.accel_y_error = sum(accel_y) / len(accel_y)
         self.accel_z_error = (sum(accel_z) / len(accel_z)) - 9.80665
 
-    def imu_callback(self, imu):
+    def imu_callback(self, imu:Imu):
+        if self.start_time is None:
+            self.start_time = Time.from_msg(imu.header.stamp).nanoseconds
         imu_linear_x = imu.linear_acceleration.x
         imu_linear_y = imu.linear_acceleration.y
         imu_linear_z = imu.linear_acceleration.z
@@ -79,7 +80,6 @@ class IMUCalibration(Node):
 
             self.imu_pub.publish(new_imu_msg)
             return
-        
         self.gyro_x.append(imu_angular_x)
         self.gyro_y.append(imu_angular_y)
         self.gyro_z.append(imu_angular_z)
@@ -88,27 +88,12 @@ class IMUCalibration(Node):
         self.accel_y.append(imu_linear_y)
         self.accel_z.append(imu_linear_z)
 
-    def check_time(self):
-        current_time = time.time()
-        self.elapsed_time = current_time - self.start_time
-        if self.elapsed_time >= self.calibration_time:
+        current_time = Time.from_msg(imu.header.stamp).nanoseconds
+        if current_time - self.start_time > self.calibration_time * 1e9:
             self.imu_calibrated = True
-            print("Calibrated")
             self.mean_error(self.gyro_x, self.gyro_y, self.gyro_z,
             self.accel_x,self.accel_y,self.accel_z)
-            print(f"New Biases are: Angular X = {self.gyro_x_error}, Angular Y = {self.gyro_y_error}, Angular Z = {self.gyro_z_error}")
-            print(f"New Biases are: Linear X = {self.accel_x_error}, Linear Y = {self.accel_y_error}, Linear Z = {self.accel_z_error}")
-            self.clean_up()
-    def clean_up(self):
-        self.gyro_x = None
-        self.gyro_y = None
-        self.gyro_z = None
-        self.accel_x = None
-        self.accel_y = None
-        self.accel_z = None
-        self.timer.destroy()
-            
-
+        
 def main(args=None):
     rclpy.init(args=args)
     node = IMUCalibration()
