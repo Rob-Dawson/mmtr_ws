@@ -10,10 +10,8 @@ from rclpy.node import Node
 from nav_msgs.msg import Odometry
 
 from geometry_msgs.msg import PoseWithCovarianceStamped, TwistWithCovarianceStamped
-from robot_localization.srv import SetPose, SetPose_Request, SetPose_Response
+from robot_localization.srv import SetPose
 from mmtr_msg.msg import CollisionEvent
-from rcl_interfaces.srv import SetParameters
-from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
 
 def wrap_to_pi(angle):
     wrapped = math.fmod(angle, 2 * math.pi)
@@ -70,8 +68,8 @@ class RewindOdom(Node):
         self.collision_event_time_ns = None
 
         self.ukf_set = self.create_client(SetPose, '/set_pose')
-        self.pose_cov_diag  = [0.001, 0.001, 1e6, 1e6, 1e6, 0.001]
-        self.twist_cov_diag = [1e-12, 1e6, 1e6, 1e6, 1e6, 1e-12]
+        self.pose_cov_diag  = [0.001, 0.001, 1e3, 1e3, 1e3, 0.001]
+        self.twist_cov_diag = [1e-3, 1e3, 1e3, 1e3, 1e3, 1e-3]
 
     def pose_cb(self, msg: Odometry):
         if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
@@ -131,7 +129,7 @@ class RewindOdom(Node):
         quat = yaw_to_quat(candidate_event.yaw_orient)
         new_pose_stamped.header.frame_id = "mmtr/odom"
         new_pose_stamped.header.stamp = self.get_clock().now().to_msg()
-        new_pose_stamped.pose.pose.position.x = float(candidate_event.pose_x)
+        new_pose_stamped.pose.pose.position.x = float(1.052)
         new_pose_stamped.pose.pose.position.y = float(candidate_event.pose_y)
         new_pose_stamped.pose.pose.position.z = float(candidate_event.pose_z)
 
