@@ -43,6 +43,7 @@ import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 
+
 def covariance_from_diagonal(diag):
     cov = [0.0] * 36
     for i, val in enumerate(diag):
@@ -77,15 +78,19 @@ class CovarianceOverride(Node):
         self.max_gain   = float(self.get_parameter("max_gain").value)
         self.curvature_min_speed  = 0.05
 
+
         self.turn_th     = float(self.get_parameter("turn_inflate_threshold").value)
         self.turn_factor = float(self.get_parameter("turn_inflate_factor").value)
 
-        # ---------- I/O ----------
         self.sub = self.create_subscription(Odometry, "/model/mmtr/odometry", self.odom_cb, 50)
         self.pub_fix = self.create_publisher(Odometry, "/model/mmtr/odom_cov_fixed", 10)
 
+
+
         self.last_log_time = self.get_clock().now()
         self.log_period = 0.5  # seconds
+    
+
 
     def odom_cb(self, msg: Odometry):
         out = Odometry()
@@ -109,7 +114,6 @@ class CovarianceOverride(Node):
         else:
             turn_metric = abs(angular_velocity_z)
 
-        # --- gain and correction ---
         # adjusts the velocity x 
         #odom says turning at speed X
         #imu says turning at speed X
@@ -118,22 +122,18 @@ class CovarianceOverride(Node):
         gain = max(self.min_gain, min(gain, self.max_gain))
         vx_corr = linear_velocity_x * gain
 
-        # --- write corrected twist ---
         out.twist.twist.linear.x  = vx_corr
         out.twist.twist.linear.y = 0.0
         out.twist.twist.angular.z = angular_velocity_z
 
-        # --- covariances ---
         out.pose.covariance = covariance_from_diagonal(self.pose_cov_diag)
         twist_cov_diag = list(self.twist_cov_diag)
         if abs(angular_velocity_z) > self.turn_th:
             twist_cov_diag[0] *= self.turn_factor
         out.twist.covariance = covariance_from_diagonal(twist_cov_diag)
 
-        # --- publish corrected ---
         self.pub_fix.publish(out)
 
-        # --- log corrected values (rate-limited) ---
         now = self.get_clock().now()
         if (now - self.last_log_time).nanoseconds * 1e-9 >= self.log_period:
             self.get_logger().info(
