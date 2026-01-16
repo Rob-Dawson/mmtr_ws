@@ -3,6 +3,7 @@
 import math, statistics
 import collections
 import rclpy
+from rclpy.time import Time
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
@@ -18,15 +19,21 @@ def vec_mag(x, y, z):
 class Zupt(Node):
     def __init__(self):
         super().__init__("ZUPT")
+
+        ##Pubs and Subs
         self.imu_sub = self.create_subscription(Imu, "imu/data", self.imu_callback, 10)
+
         self.cmd_vel_sub = self.create_subscription(
             Twist, "/model/mmtr/cmd_vel", self.cmd_vel_callback, 10
         )
+
         self.odom_sub = self.create_subscription(
             Odometry, "model/mmtr/odometry", self.odom_callback, 10
         )
 
-        self.zupt_pub = self.create_publisher(TwistWithCovarianceStamped, "zupt/twist", 10)
+        self.zupt_pub = self.create_publisher(
+            TwistWithCovarianceStamped, "zupt/twist", 10
+        )
 
         ## Parameters
         self.timer_rate_hz = 30.0
@@ -39,15 +46,11 @@ class Zupt(Node):
 
         # IMU
         self.imu_buffer = collections.deque()
-        self.buffer_size = int(self.timer_rate_hz * self.window_size_sec)
-        self.last_imu_time = None
+        self.imu_buffer_window = int(0.5 * 1e9)
         self.angular_vel_mean_thresh = 0.01
         self.angular_vel_std_thresh = 0.003
         self.linear_accel_mean_thresh = 0.3
         self.linear_accel_std_thresh = 0.05
-
-        # This is based on the cmd_vel. If it's greater than 0, this means I want the robot to move
-        # meaning a ZUPT should not happen
 
         ##States
         self.allow_zupt = False  # True when commands are zero
@@ -57,15 +60,14 @@ class Zupt(Node):
         self.imu_quiet_since = None
         self.timer = self.create_timer(1.0 / self.timer_rate_hz, self.tick)
 
+
     def cmd_vel_callback(self, cmd):
-        print("HIIIII")
         linear_magnitude = vec_mag(cmd.linear.x, cmd.linear.y, cmd.linear.z)
         angular_magnitude = vec_mag(cmd.angular.x, cmd.angular.y, cmd.angular.z)
         if linear_magnitude > 0.0 or angular_magnitude > 0.0:
             self.allow_zupt = False
         else:
             self.allow_zupt = True
-        print("cmd_vel_callback")
 
     def odom_callback(self, odom):
         linear_magnitude = vec_mag(
@@ -87,7 +89,8 @@ class Zupt(Node):
         else:
             self.odom_is_zero = False
 
-    def imu_callback(self, imu):
+    def imu_callback(self, imu: Imu):
+        imu_time = Time.from_msg(imu.header.stamp).nanoseconds
         angular_magnitude = vec_mag(
             imu.angular_velocity.x, imu.angular_velocity.y, imu.angular_velocity.z
         )
@@ -98,25 +101,19 @@ class Zupt(Node):
         )
         agap = abs(linear_magnitude - GRAVITY)
 
-        if self.last_imu_time is not None:
-            dt = (imu.header.stamp.sec - self.last_imu_time.sec) + 1e-9 * (
-                imu.header.stamp.nanosec - self.last_imu_time.nanosec
-            )
-            if dt > 1e-6:
-                imu_rate = 1.0 / dt
-                self.buffer_size = max(5, int(self.window_size_sec * imu_rate))
-                while len(self.imu_buffer) > self.buffer_size:
-                    self.imu_buffer.popleft()
-        self.last_imu_time = imu.header.stamp
-        self.imu_buffer.append((angular_magnitude, agap, imu.header.stamp))
-        if len(self.imu_buffer) > self.buffer_size:
+        self.imu_buffer.append((imu_time, angular_magnitude, agap))
+        # self.get_logger().info(f"Len{len(self.imu_buffer)}")
+        while self.imu_buffer and (imu_time - self.imu_buffer[0][0] >= self.imu_buffer_window):
             self.imu_buffer.popleft()
 
     def imu_stationary_check(self):
-        if len(self.imu_buffer) < max(5, int(0.1 * self.buffer_size)):
+        if len(self.imu_buffer) < 2:
+            return False    
+        span_ns = self.imu_buffer[-1][0] - self.imu_buffer[0][0]
+        if span_ns < 0.5 * self.imu_buffer_window:
             return False
-        max_angular_velocity = [b[0] for b in self.imu_buffer]
-        max_linear_acceleration = [b[1] for b in self.imu_buffer]
+        max_angular_velocity = [b[1] for b in self.imu_buffer]
+        max_linear_acceleration = [b[2] for b in self.imu_buffer]
 
         angular_velocity_mean = statistics.fmean(max_angular_velocity)
         angular_velocity_std = statistics.pstdev(max_angular_velocity)
@@ -144,16 +141,19 @@ class Zupt(Node):
                 self.imu_quiet_since = self.get_clock().now().nanoseconds * 1e-9
             elapsed = self.get_clock().now().nanoseconds * 1e-9 - self.imu_quiet_since
             self.is_zupt = elapsed >= hold_time
-            self.publish_to_zero()
-            print("STATIONARY")
+            if elapsed >= hold_time:
+                self.publish_to_zero()
+                self.get_logger().info("Stationary")
         else:
             self.is_zupt = False
             self.imu_quiet_since = None
-            print("not Stationary")
+            self.get_logger().info("Not Stationary")
 
     def publish_to_zero(self):
 
         msg = TwistWithCovarianceStamped()
+        msg.header.frame_id = "base_footprint"
+        msg.header.stamp = self.get_clock().now().to_msg()
         msg.twist.twist.linear.x = 0.0
         msg.twist.twist.linear.y = 0.0
         msg.twist.twist.linear.z = 0.0
@@ -165,10 +165,9 @@ class Zupt(Node):
         covariance = [0.0] * 36
         diag = [1e-3, 1e-3, 1e-2, 1e-3, 1e-3, 3e-4]
         for i, v in enumerate(diag):
-            covariance[i*6 + i] = v
+            covariance[i * 6 + i] = v
         msg.twist.covariance = covariance
         self.zupt_pub.publish(msg)
-
 
 
 def main(args=None):
