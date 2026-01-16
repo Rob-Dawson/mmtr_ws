@@ -114,18 +114,18 @@ ukf_filter_node:
 
 
     #ZUPT
-    # twist0: zupt/twist
-    # twist0_config: [false, false, false,  # Position: XYZ
-    #                false, false, false,   # Orientation: roll, pitch, yaw,
-    #                true, true, false,   # Linear Velocity: XYZ
-    #                true, true, true,   # Angular Velocity: vroll, vpitch, vyaw
-    #                false, false, false]   # Linear Acceleration: XYZ
+    twist0: zupt/twist
+    twist0_config: [false, false, false,  # Position: XYZ
+                   false, false, false,   # Orientation: roll, pitch, yaw,
+                   true, true, false,   # Linear Velocity: XYZ
+                   true, true, true,   # Angular Velocity: vroll, vpitch, vyaw
+                   false, false, false]   # Linear Acceleration: XYZ
 
     #This is called 
-    twist0: rewind/zero_twist
-    twist0_differential: false
-    twist0_queue_size: 5
-    twist0_config: [false, false, false,  # Position: XYZ
+    twist1: rewind/zero_twist
+    twist1_differential: false
+    twist1_queue_size: 5
+    twist1_config: [false, false, false,  # Position: XYZ
                     false, false, false,   # Orientation: roll, pitch, yaw,
                     true, true, false,   # Linear Velocity: XYZ
                     true, true, true,   # Angular Velocity: vroll, vpitch, vyaw
