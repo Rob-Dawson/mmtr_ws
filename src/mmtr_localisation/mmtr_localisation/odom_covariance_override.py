@@ -135,12 +135,12 @@ class CovarianceOverride(Node):
         self.pub_fix.publish(out)
 
         now = self.get_clock().now()
-        if (now - self.last_log_time).nanoseconds * 1e-9 >= self.log_period:
-            self.get_logger().info(
-                f"wz={angular_velocity_z:+.3f} rad/s  m={turn_metric:.3f}  gain={gain:.3f}  "
-                f"vx_raw={linear_velocity_x:+.3f} → vx_corr={vx_corr:+.3f}"
-            )
-            self.last_log_time = now
+        # if (now - self.last_log_time).nanoseconds * 1e-9 >= self.log_period:
+        #     self.get_logger().info(
+        #         f"wz={angular_velocity_z:+.3f} rad/s  m={turn_metric:.3f}  gain={gain:.3f}  "
+        #         f"vx_raw={linear_velocity_x:+.3f} → vx_corr={vx_corr:+.3f}"
+        #     )
+            # self.last_log_time = now
 
 def main(args=None):
     rclpy.init(args=args)
