@@ -9,9 +9,12 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs)
+find_package(geometry_msgs)
+find_package(builtin_interfaces)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/CollisionEvent.msg"
-  DEPENDENCIES std_msgs
+  "msg/RewindEvent.msg"
+  DEPENDENCIES std_msgs geometry_msgs builtin_interfaces
 )
 # uncomment the following section in order to fill in
 # further dependencies manually.
