@@ -22,6 +22,8 @@ install(PROGRAMS
   ${PROJECT_NAME}/odom_covariance_override.py
   ${PROJECT_NAME}/magnetometer_frame_conversion.py
   ${PROJECT_NAME}/rewind_odom.py
+  ${PROJECT_NAME}/yaw_correction.py
+
 
 DESTINATION lib/${PROJECT_NAME})
 
