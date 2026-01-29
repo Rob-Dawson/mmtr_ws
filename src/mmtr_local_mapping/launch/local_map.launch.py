@@ -8,7 +8,7 @@ from launch.actions import TimerAction
 
 def generate_launch_description():
     mmtr_local_map_dir = get_package_share_directory("mmtr_local_mapping")
-    local_map = Node(package="mmtr_local_mapping", executable="mapping_with_collisions.py",    parameters=[{"use_sim_time": True}])
+    # local_map = Node(package="mmtr_local_mapping", executable="mapping_with_collisions.py",    parameters=[{"use_sim_time": True}])
     rviz2 = Node(package="rviz2", executable="rviz2",arguments=["-d", os.path.join(mmtr_local_map_dir, "config", "display.rviz")], parameters=[{}])
 
     local_mapping_costmap = Node(
@@ -38,7 +38,7 @@ def generate_launch_description():
         
 
     ld = LaunchDescription()
-    ld.add_action(local_map)
+    # ld.add_action(local_map)
     ld.add_action(rviz2)
     ld.add_action(local_mapping_costmap)
     ld.add_action(TimerAction(period=3.0, actions=[local_mapping_lifecycle]))    
