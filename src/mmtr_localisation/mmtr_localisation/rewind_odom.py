@@ -8,11 +8,11 @@ import rclpy
 from rclpy.time import Time
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
-
+import builtin_interfaces.msg
 from geometry_msgs.msg import PoseWithCovarianceStamped, TwistWithCovarianceStamped
 from robot_localization.srv import SetPose
 from mmtr_msg.msg import CollisionEvent
-
+from mmtr_msg.msg import RewindEvent
 def wrap_to_pi(angle):
     wrapped = math.fmod(angle, 2 * math.pi)
     if wrapped > math.pi:
@@ -54,13 +54,21 @@ class RewindOdom(Node):
     def __init__(self):
         super().__init__("Rewind_Odom")
 
+        # self.declare_parameter("use_sim_time", True)
+        self.new_pose = None
+
         self.pose_buffer = deque()
         self.pose_sub = self.create_subscription(
             Odometry, "/odometry/filtered_ukf", self.pose_cb, 100
         )
+
+        self.controller_speed_sub = self.create_subscription(Odometry, "/model/mmtr/odometry", self.controller_speed_cb,  10)
+
         self.collision_detection_sub = self.create_subscription(
             CollisionEvent, "/collision/event", self.collision_cb, 10
         )
+
+        self.rewind_event_trigger_pub = self.create_publisher(RewindEvent, "rewind_event", 10)
         self.zero_twist_pub = self.create_publisher(TwistWithCovarianceStamped, "rewind/zero_twist", 100)
 
         self.pending_buffer = False
@@ -70,6 +78,24 @@ class RewindOdom(Node):
         self.ukf_set = self.create_client(SetPose, '/set_pose')
         self.pose_cov_diag  = [0.001, 0.001, 1e3, 1e3, 1e3, 0.001]
         self.twist_cov_diag = [1e-3, 1e3, 1e3, 1e3, 1e3, 1e-3]
+
+        self.controller_speed_twist = None
+
+        self.pending_rewind_pole = self.create_timer(1.0 / 20, self.tick)
+        self.pending_rewind = False
+        self.end_pose_before_rewind = None
+    
+    def tick(self):
+        if self.pending_rewind:
+            print("pending")
+            if self.controller_speed_twist == 0.0:
+                print(self.controller_speed_twist)
+                self.set_ukf_pose(self.new_pose)
+                self.pending_rewind = False
+                self.new_pose = None
+
+    def controller_speed_cb(self, msg: Odometry):
+        self.controller_speed_twist = msg.twist.twist.linear.x
 
     def pose_cb(self, msg: Odometry):
         if msg.header.stamp.sec == 0 and msg.header.stamp.nanosec == 0:
@@ -113,6 +139,8 @@ class RewindOdom(Node):
         #     self.rewind(self.collision_event_time_ns)
 
     def set_ukf_pose(self, candidate_event: PoseSample):
+        print("here")
+        print(self.pending_rewind)
         new_twist_stamped = TwistWithCovarianceStamped()
         new_twist_stamped.header.frame_id = "base_footprint"
         new_twist_stamped.header.stamp = self.get_clock().now().to_msg()
@@ -129,7 +157,7 @@ class RewindOdom(Node):
         quat = yaw_to_quat(candidate_event.yaw_orient)
         new_pose_stamped.header.frame_id = "mmtr/odom"
         new_pose_stamped.header.stamp = self.get_clock().now().to_msg()
-        new_pose_stamped.pose.pose.position.x = float(1.052)
+        new_pose_stamped.pose.pose.position.x = float(candidate_event.pose_x)
         new_pose_stamped.pose.pose.position.y = float(candidate_event.pose_y)
         new_pose_stamped.pose.pose.position.z = float(candidate_event.pose_z)
 
@@ -151,13 +179,27 @@ class RewindOdom(Node):
         request.pose.pose.pose.orientation.z = new_pose_stamped.pose.pose.orientation.z
         request.pose.pose.pose.orientation.w = new_pose_stamped.pose.pose.orientation.w
         request.pose.pose.covariance = new_pose_stamped.pose.covariance
-        
-
 
         future = self.ukf_set.call_async(request)
+        rewind_event = RewindEvent()
+        time = builtin_interfaces.msg.Time()
+        sec = self.collision_event_time_ns // int(1e9)
+        nanosec = self.collision_event_time_ns % int(1e9)
+        time.sec = sec
+        time.nanosec = nanosec
+        
+        rewind_event.t_crash = time
+        rewind_event.pose_crash = new_pose_stamped
+        self.rewind_event_trigger_pub.publish(rewind_event)
+
+
         future.add_done_callback(lambda f: self.get_logger().info(
     f"SetPose result: {getattr(f.result(), 'success', 'no_success_field')}"))
+        
+        self.get_logger().info(f"End pose before rewind {self.pose_buffer[-1]} ")
+        
         self.get_logger().info(f"{new_pose_stamped.header.frame_id}")
+        
         self.get_logger().info(
             f"[REWIND] SetPose -> frame=mmtr/odom | x={candidate_event.pose_x}m, y={candidate_event.pose_y} m, z={candidate_event.pose_z} m | yaw={candidate_event.yaw_orient}"
         )
@@ -197,11 +239,18 @@ class RewindOdom(Node):
             self.get_logger().info(f"{before_t_event.t_ns}")
             self.get_logger().info(f"{after_t_event.t_ns}")
 
+
+            ##Currently, this will set the pose immediatly upon collision
+            ##You need to wait until the controller has reached 0
+            ##Log the new_pose 
+
             if before_t_event.t_ns == after_t_event.t_ns:
-                self.set_ukf_pose(before_t_event)
+                self.new_pose = before_t_event
+                self.pending_rewind = True
             else:
                 interpolated_pose = self.interpolate_pose(before_t_event, after_t_event, collision_event_time_ns)    
-                self.set_ukf_pose(interpolated_pose)
+                self.new_pose = interpolated_pose
+                self.pending_rewind = True
         ## Here is where the rewind will happen
         ## It takes the collision_event_time_ns and using the pose buffer,
         # interpolates where the robot should be at the given time
