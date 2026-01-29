@@ -18,12 +18,12 @@ def quat_to_Rwb(qx, qy, qz, qw):
     x, y, z, w = qx, qy, qz, qw
     xx, yy, zz = x*x, y*y, z*z
     xy, xz, yz = x*y, x*z, y*z
-    wx, wy, wz = w*x, w*y, w*z
+    wx, wy, wz = w*x, w*y, w*z 
     return np.array(
         [
-            [1 - 2*(yy + zz),   2*(xy - wz),     2*(xz + wy)],
-            [  2*(xy + wz),   1 - 2*(xx + zz),   2*(yz - wx)],
-            [  2*(xz - wy),     2*(yz + wx),   1 - 2*(xx + yy)],
+            [1- 2*(yy+zz), 2*(xy - wz), 2*(xz + wy)],
+            [   2*(xy+wz), 1-2*(xx + zz), 2*(yz - wx)],
+            [   2*(xz-wy), 2*(yz + wx), 1-2*(xx + yy)],
         ],
         dtype=float,
     )
@@ -92,7 +92,7 @@ class jerk_calc(Node):
         
         q /= max(1e-12, np.linalg.norm(q))
         Rwb = quat_to_Rwb(*q)
-        g_b = Rwb.T @ self.g_world  # world -> body
+        g_b = Rwb @ self.g_world  # world -> body
 
         aw = 1.0 - math.exp(-2.0 * math.pi * self.fc_w * dt)
         aw = min(max(aw, 1e-3), 0.9)
