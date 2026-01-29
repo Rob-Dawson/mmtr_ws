@@ -5,8 +5,9 @@ import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from nav_msgs.msg import OccupancyGrid
-
+from rclpy.time import Time
 from mmtr_msg.msg import CollisionEvent
+from mmtr_msg.msg import RewindEvent
 SIDE_VEC = {0:(1,0), 1:(0,1), 2:(0,-1), 3:(-1,0)}  # FRONT, LEFT, RIGHT, REAR
 
 PRIOR_PROB = 0.4
@@ -63,11 +64,16 @@ class MappingWithCollisions(Node):
         self.map.info.origin.position.y = -(self.height * self.resolution / 2.0)
         self.map.info.origin.orientation.w = 1.0
 
+        self.t_crash = None
+        self.pose_crash = None
+        self.rollback_pending = False
 
         self.collision_detected_sub = self.create_subscription(CollisionEvent, "/collision/event", self.collision_detected, 10)
 
 
         # self.map.data = [-1 for _ in range(self.width * self.height)]
+        self.rewind_event_sub = self.create_subscription(RewindEvent, "/rewind_event", self.rewind_event_cb, 10)
+        
         self.odom_sub = self.create_subscription(
             Odometry, "/odometry/filtered_ukf", self.odom_callback, 10
         )
@@ -85,6 +91,12 @@ class MappingWithCollisions(Node):
         self.previous_cell_x = None
         self.previous_cell_y = None
 
+        ##This grid will store the timestamps when a cell was last edited
+        ##This will allow the rewind to "rewind" anything after the timestamp
+        self.last_visited_ns = np.zeros((self.map.info.height, self.map.info.width),
+                                        dtype=np.uint64)
+
+
         self.map_origin_x = self.map.info.origin.position.x
         self.map_origin_y = self.map.info.origin.position.y
         self.get_logger().info(
@@ -100,6 +112,11 @@ class MappingWithCollisions(Node):
         if VISUALISE_LOG_ODDS_IN_RVIZ:
             self.map_prob_pub = self.create_publisher(OccupancyGrid, "map_prob", 10)
             self.visited = np.zeros(self.log_odds.shape, dtype=bool)
+
+    def rewind_event_cb(self, rewind:RewindEvent):
+        self.pose_crash = rewind.pose_crash 
+        self.t_crash = rewind.t_crash
+        self.rollback_pending = True
 
     ##Used for carving free space
     def bresenham(self, current_x, current_y, prev_x, prev_y):
@@ -159,6 +176,7 @@ class MappingWithCollisions(Node):
             self.mark_as_occupied(i,j,confidence=getattr(msg, "confidence", 1.0))
 
     def mark_as_free(self, current_cell_x, current_cell_y):
+        now = self.get_clock().now().nanoseconds
         if 0 <= current_cell_x < self.width and 0 <= current_cell_y < self.height:
             ## This ensures that occupied cells with a probability above {LOG_LOCK} are not overwritten
             if self.log_odds[current_cell_y, current_cell_x] > LOG_LOCK:
@@ -169,6 +187,8 @@ class MappingWithCollisions(Node):
                 LOG_PROB_MIN,
                 LOG_PROB_MAX,
             ))
+
+            self.last_visited_ns[current_cell_y, current_cell_x] = now
             if VISUALISE_LOG_ODDS_IN_RVIZ:
                 self.visited[current_cell_y, current_cell_x] = True
             # index = current_cell_y * self.width + current_cell_x
@@ -235,16 +255,38 @@ class MappingWithCollisions(Node):
         header_stamp = self.get_clock().now().to_msg()
         probability = 1.0 / (1.0 + np.exp(-self.log_odds))
         # print(probability)
+        ##Contains all the cells where prob is > 0.7
+        occupied_mask = probability > 0.7
+        ##Contains all the cells where last_visited_ns is != 0
+        if self.rollback_pending:
+            t_crash_sec = self.t_crash.sec
+            t_crash_ns = self.t_crash.nanosec
+            t_crash_ns = t_crash_sec*int(1e9) + t_crash_ns
+
+            cells_after_crash = self.last_visited_ns >= t_crash_ns
+            self.rollback_pending = False
+            stuff_happened = self.last_visited_ns > 0.0
+            print(self.last_visited_ns[stuff_happened])
+            print(f"CRASH {t_crash_ns}")
+            self.last_visited_ns[cells_after_crash] = 0
+
+        free_mask = (self.last_visited_ns != 0) & (~occupied_mask)
         grid = np.full(self.log_odds.shape, -1, dtype=np.int8)
-        grid[probability > 0.7] = 100
-        grid[probability < 0.3] = 0
+        grid[free_mask] = 0
+        grid[occupied_mask] = 100
+
+
+        
+
+
 
         self.map.data = grid.ravel(order="C").tolist()
         self.map.header.stamp = header_stamp
         self.map.header.frame_id = "mmtr/odom"
         self.map_pub.publish(self.map)
         hist, bins = np.histogram(self.log_odds, bins=10)
-        print(list(zip(bins, hist)))
+        # print(list(zip(bins, hist)))
+
 
         if VISUALISE_LOG_ODDS_IN_RVIZ:
             prob_msg = OccupancyGrid()
