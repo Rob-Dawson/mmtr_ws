@@ -8,10 +8,24 @@ from rclpy.node import Node
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TwistWithCovarianceStamped, Twist
+import numpy as np
 
 GRAVITY = 9.80665
 
-
+##Rotate quaternion into World Frame
+def quat_to_world_frame(qx, qy, qz, qw):
+    x, y, z, w = qx, qy, qz, qw
+    xx, yy, zz = x*x, y*y, z*z
+    xy, xz, yz = x*y, x*z, y*z
+    wx, wy, wz = w*x, w*y, w*z 
+    return np.array(
+        [
+            [1- 2*(yy+zz), 2*(xy - wz), 2*(xz + wy)],
+            [   2*(xy+wz), 1-2*(xx + zz), 2*(yz - wx)],
+            [   2*(xz-wy), 2*(yz + wx), 1-2*(xx + yy)],
+        ],
+        dtype=float
+    )
 def vec_mag(x, y, z):
     return math.sqrt(x * x + y * y + z * z)
 
@@ -58,7 +72,7 @@ class Zupt(Node):
         self.is_zupt = False
 
         self.imu_quiet_since = None
-        self.timer = self.create_timer(1.0 / self.timer_rate_hz, self.tick)
+        # self.timer = self.create_timer(1.0 / self.timer_rate_hz, self.tick)
 
 
     def cmd_vel_callback(self, cmd):
@@ -94,14 +108,47 @@ class Zupt(Node):
         angular_magnitude = vec_mag(
             imu.angular_velocity.x, imu.angular_velocity.y, imu.angular_velocity.z
         )
-        linear_magnitude = vec_mag(
-            imu.linear_acceleration.x,
-            imu.linear_acceleration.y,
-            imu.linear_acceleration.z,
-        )
-        agap = abs(linear_magnitude - GRAVITY)
 
-        self.imu_buffer.append((imu_time, angular_magnitude, agap))
+        ##Rotating acceleration vector into the world frame. 
+        ##Gravity is measured in the acceleration vector so rotating it into the world frame make it easy to subtract it
+        #Store quaternion in np array
+        imu_orientation_quaternion = np.array([imu.orientation.x, imu.orientation.y, 
+                                       imu.orientation.z, imu.orientation.w])
+        
+        ##Normalise the quaternion to be ~ 1 this ensures the numbers only rotate and do not stretch and deform
+        imu_orientation_quaternion /= np.linalg.norm(imu_orientation_quaternion)
+        ##Returns a 3x3 rotation matrix
+
+        rotation_to_world_frame = (quat_to_world_frame(imu_orientation_quaternion[0],imu_orientation_quaternion[1], imu_orientation_quaternion[2], imu_orientation_quaternion[3]))
+        # print(imu_orientation_quaternion)
+        # print(rotation_to_world_frame)
+
+        linear_Accel = np.array([imu.linear_acceleration.x,
+                                 imu.linear_acceleration.y,
+                                 imu.linear_acceleration.z])
+        
+        linear_accel_to_world = rotation_to_world_frame @ linear_Accel
+        gravity = np.array([0,0,9.86])
+        true_linear_accel = linear_accel_to_world - gravity
+        # print(f"linear accel = {linear_accel_to_world}")
+        
+        print(f"accel = {true_linear_accel}")
+        
+        # print("a_body:", linear_Accel, " |a_body|:", np.linalg.norm(linear_Accel))
+        # print("a_world:", linear_accel_to_world, " |a_world|:", np.linalg.norm(linear_accel_to_world))
+
+        # linear_magnitude = vec_mag(
+        #     imu.linear_acceleration.x,
+        #     imu.linear_acceleration.y,
+        #     imu.linear_acceleration.z,
+        # )
+        # agap = abs(linear_magnitude - GRAVITY)
+
+        
+
+
+
+        self.imu_buffer.append((imu_time, angular_magnitude, linear_Accel))
         # self.get_logger().info(f"Len{len(self.imu_buffer)}")
         while self.imu_buffer and (imu_time - self.imu_buffer[0][0] >= self.imu_buffer_window):
             self.imu_buffer.popleft()
@@ -112,6 +159,7 @@ class Zupt(Node):
         span_ns = self.imu_buffer[-1][0] - self.imu_buffer[0][0]
         if span_ns < 0.5 * self.imu_buffer_window:
             return False
+        
         max_angular_velocity = [b[1] for b in self.imu_buffer]
         max_linear_acceleration = [b[2] for b in self.imu_buffer]
 
@@ -119,6 +167,11 @@ class Zupt(Node):
         angular_velocity_std = statistics.pstdev(max_angular_velocity)
         linear_acceleration_mean = statistics.fmean(max_linear_acceleration)
         linear_acceleration_std = statistics.pstdev(max_linear_acceleration)
+
+
+
+        gyro_rms = math.sqrt(statistics.fmean(w*w for w in max_angular_velocity))
+        self.get_logger().info(f"{gyro_rms}")
         is_stationary = (
             angular_velocity_mean < self.angular_vel_mean_thresh
             and angular_velocity_std < self.angular_vel_std_thresh
