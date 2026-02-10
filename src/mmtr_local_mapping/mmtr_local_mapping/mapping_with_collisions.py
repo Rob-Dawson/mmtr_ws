@@ -44,11 +44,15 @@ ROBOT_WIDTH = 0.15
 OUTER_OFFSET = 0.1
 BOX_SIZE_M = 0.3
 
+ROBOT_RADIUS = 0.5 * math.sqrt(ROBOT_LENGTH * ROBOT_LENGTH + ROBOT_WIDTH * ROBOT_WIDTH)
+
 
 class MappingWithCollisions(Node):
     ## Add log odds
     def __init__(self):
         super().__init__("Mapping_With_Collision")
+        
+        ## Map configuration
         self.width = 200
         self.height = 200
         self.resolution = 0.05
@@ -64,25 +68,31 @@ class MappingWithCollisions(Node):
         self.map.info.origin.position.y = -(self.height * self.resolution / 2.0)
         self.map.info.origin.orientation.w = 1.0
 
+        self.map_origin_x = self.map.info.origin.position.x
+        self.map_origin_y = self.map.info.origin.position.y
+
+        ## Find all the cells around the robot's current
+        ## cellX and cellY using a circle as the shape
+        self.circle_offsets = [] 
+        radius_cells = int(math.ceil(ROBOT_RADIUS/self.resolution))
+        self.circle_offset(radius_cells)
+
+        ## Params for the crash and rollback event 
         self.t_crash = None
         self.pose_crash = None
         self.rollback_pending = False
 
+        ## Publishers and Subscribers
         self.collision_detected_sub = self.create_subscription(CollisionEvent, "/collision/event", self.collision_detected, 10)
-
-
-        # self.map.data = [-1 for _ in range(self.width * self.height)]
         self.rewind_event_sub = self.create_subscription(RewindEvent, "/rewind_event", self.rewind_event_cb, 10)
-        
         self.odom_sub = self.create_subscription(
             Odometry, "/odometry/filtered_ukf", self.odom_callback, 10
         )
         self.map_pub = self.create_publisher(OccupancyGrid, "map", 10)
-        # self.collision_detection_sub = self.create_subscription(String, "crash_detection", self.crash_callback, 10)
         self.timer = self.create_timer(1.0, self.publish_map)
 
-        ##Building the probability map using numpy as it is significantly faster for accessing and manipulation
-        ##Initialises log_odds probability map to 0.5
+        ## Building the probability map using numpy as it is significantly faster for accessing and manipulation
+        ## Initialises log_odds probability map to 0.5
         self.log_odds = np.full(
             (self.map.info.height, self.map.info.width),
             LOG_PRIOR_PROB,
@@ -91,35 +101,40 @@ class MappingWithCollisions(Node):
         self.previous_cell_x = None
         self.previous_cell_y = None
 
-        ##This grid will store the timestamps when a cell was last edited
-        ##This will allow the rewind to "rewind" anything after the timestamp
+        ## This grid will store the timestamps when a cell was last edited
+        ## This will allow the rewind to "rewind" anything after the timestamp
         self.last_visited_ns = np.zeros((self.map.info.height, self.map.info.width),
                                         dtype=np.uint64)
-
-
-        self.map_origin_x = self.map.info.origin.position.x
-        self.map_origin_y = self.map.info.origin.position.y
-        self.get_logger().info(
-            f"init L[min,max,mean]={self.log_odds.min():.3f},{self.log_odds.max():.3f},{self.log_odds.mean():.3f}"
-        )
 
         self.box_half_cells = max(1, math.ceil((BOX_SIZE_M / 2.0) / self.resolution))
 
         self.robot_yaw = 0.0
         self.bump_block_until = 0.0
-        
+
 
         if VISUALISE_LOG_ODDS_IN_RVIZ:
             self.map_prob_pub = self.create_publisher(OccupancyGrid, "map_prob", 10)
             self.visited = np.zeros(self.log_odds.shape, dtype=bool)
+       
+
+    ## Finds all the cells within the radius of the robot 
+    def circle_offset(self, radius_cells:int):
+        radius = radius_cells
+        for x in range(-radius, radius+1):
+            for y in range(-radius, radius+1):
+                if x*x + y*y <= radius*radius:
+                    self.circle_offsets.append((x,y))
+            
+
 
     def rewind_event_cb(self, rewind:RewindEvent):
         self.pose_crash = rewind.pose_crash 
         self.t_crash = rewind.t_crash
         self.rollback_pending = True
 
-    ##Used for carving free space
+    ## Used for carving free space
     def bresenham(self, current_x, current_y, prev_x, prev_y):
+        
         dx = abs(current_x - prev_x)
         dy = abs(current_y - prev_y)
         if prev_x < current_x:
@@ -161,7 +176,6 @@ class MappingWithCollisions(Node):
 
 
     def collision_detected(self, msg):
-        print("Collision")
         self.bump_block_until = self.get_clock().now().nanoseconds * 1e-9 + 0.5
         ux, uy = SIDE_VEC.get(msg.side, (1, 0))
         c, s = math.cos(self.robot_yaw), math.sin(self.robot_yaw)
@@ -177,24 +191,21 @@ class MappingWithCollisions(Node):
 
     def mark_as_free(self, current_cell_x, current_cell_y):
         now = self.get_clock().now().nanoseconds
-        if 0 <= current_cell_x < self.width and 0 <= current_cell_y < self.height:
-            ## This ensures that occupied cells with a probability above {LOG_LOCK} are not overwritten
-            if self.log_odds[current_cell_y, current_cell_x] > LOG_LOCK:
-                return
-            ##TODO: Check if float is necessary
-            self.log_odds[current_cell_y, current_cell_x] = float(np.clip(
-                self.log_odds[current_cell_y, current_cell_x] + LOG_FREE_PROB,
-                LOG_PROB_MIN,
-                LOG_PROB_MAX,
-            ))
 
-            self.last_visited_ns[current_cell_y, current_cell_x] = now
-            if VISUALISE_LOG_ODDS_IN_RVIZ:
-                self.visited[current_cell_y, current_cell_x] = True
-            # index = current_cell_y * self.width + current_cell_x
-            # if self.map.data[index] == -1:
-            #     self.map.data[index] = 0
-            #     self.get_logger().info(f"Marked Cell {current_cell_x}, {current_cell_y} as free")
+        for dx, dy in self.circle_offsets:           
+            circle_cell_x = current_cell_x + dx
+            circle_cell_y = current_cell_y + dy
+            
+            if 0 <= circle_cell_x < self.width and 0 <= circle_cell_y < self.height:
+                ## This ensures that occupied cells with a probability above {LOG_LOCK} are not overwritten
+                if self.log_odds[circle_cell_y, circle_cell_x] > LOG_LOCK:
+                    continue
+
+                self.log_odds[circle_cell_y, circle_cell_x] = min(self.log_odds[circle_cell_y, circle_cell_x], LOG_PROB_MIN)
+                self.last_visited_ns[circle_cell_y, circle_cell_x] = now
+                
+                if VISUALISE_LOG_ODDS_IN_RVIZ:
+                    self.visited[circle_cell_y, circle_cell_x] = True
 
     def mark_as_occupied(self, current_cell_x, current_cell_y, confidence=1.0):
         if 0 <= current_cell_x < self.width and 0 <= current_cell_y < self.height:
@@ -243,6 +254,9 @@ class MappingWithCollisions(Node):
             self.previous_cell_y = current_cell_y
             return
 
+        ## If the current and previoud cell have not changed, do not perform bresenham
+        if current_cell_x == self.previous_cell_x and current_cell_y == self.previous_cell_y:#
+            return
         ##Carve a free path
         for cell_x, cell_y in self.bresenham(
             current_cell_x, current_cell_y, self.previous_cell_x, self.previous_cell_y):
@@ -269,6 +283,10 @@ class MappingWithCollisions(Node):
             print(self.last_visited_ns[stuff_happened])
             print(f"CRASH {t_crash_ns}")
             self.last_visited_ns[cells_after_crash] = 0
+
+            self.log_odds[cells_after_crash] = LOG_PRIOR_PROB
+            if VISUALISE_LOG_ODDS_IN_RVIZ:
+                self.visited[cells_after_crash] = False
 
         free_mask = (self.last_visited_ns != 0) & (~occupied_mask)
         grid = np.full(self.log_odds.shape, -1, dtype=np.int8)
