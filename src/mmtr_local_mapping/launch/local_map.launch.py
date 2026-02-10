@@ -40,8 +40,8 @@ def generate_launch_description():
     ld = LaunchDescription()
     # ld.add_action(local_map)
     ld.add_action(rviz2)
-    ld.add_action(local_mapping_costmap)
-    ld.add_action(TimerAction(period=3.0, actions=[local_mapping_lifecycle]))    
+   # ld.add_action(local_mapping_costmap)
+   # ld.add_action(TimerAction(period=3.0, actions=[local_mapping_lifecycle]))    
 
 
 
