@@ -22,7 +22,7 @@ from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Twist, Vector3Stamped
 from mmtr_msg.msg import CollisionEvent
 
-
+from std_msgs.msg import Float64 
 @dataclass
 class ImuSample:
     t_ns: int
@@ -44,8 +44,11 @@ class CollisionDetection(Node):
             Vector3Stamped, "/jerk", self.jerk_buffer, 200
         )
         self.stop = self.create_publisher(Twist, "/model/mmtr/cmd_vel", 10)
-        self.imu_buffer = deque()
+        self.acce_mag = self.create_publisher(Float64, "accel_mag", 10)
+        self.accel_without_gravity = self.create_subscription(Vector3Stamped, "/accel_without_grav", self.accel_log, 10)
 
+        self.imu_buffer = deque()
+        self.accel_buffer = deque()
         ##Schmitt Trigger
         self.collision_thresh_on = 200.0
         self.collision_thresh_off = 100.0
@@ -61,8 +64,24 @@ class CollisionDetection(Node):
         self.delta_ns = 0
         self.refactory_ns = 200_000_000
 
+    def accel_cb(self, accel: Vector3Stamped):
+        accel_mag_float = Float64()
+        x = accel.vector.x
+        y = accel.vector.y
+        accel_mag = math.sqrt(x * x + y * y)
+        accel_mag_float.data = accel_mag
+        self.acce_mag.publish(accel_mag_float)
+
     def imu_cb(self, msg: Imu):
         pass
+    
+    def accel_log(self, accel: Vector3Stamped):
+        accel_time = Time.from_msg(accel.header.stamp).nanoseconds
+        x = accel.vector.x
+        y = accel.vector.y
+        self.accel_buffer.append((accel_time,x,y))
+        while self.accel_buffer and (accel_time - self.accel_buffer[0][0]) >= int(0.1*1e9):
+            self.accel_buffer.popleft()
 
     def jerk_buffer(self, msg: Vector3Stamped):
         imu_time = Time.from_msg(msg.header.stamp).nanoseconds
@@ -119,13 +138,44 @@ class CollisionDetection(Node):
             return self.imu_buffer[onset_idx]
         return None
 
+    def detect_direction(self, crash_time):
+        self.get_logger().info(f"Detect: ")
+
+        post_crash = 20_000_000
+        stop_time = crash_time + post_crash
+        Ix = Iy = Ex = Ey = 0
+        for candidate in self.accel_buffer:
+            print(candidate[0])
+            print(stop_time)
+            if candidate[0] < stop_time:
+                Ix += candidate[1]
+                Iy += candidate[2]
+                Ex += candidate[1] * candidate[1]
+                Ey += candidate[2] * candidate[2]
+        print(f"Ex: {Ex}")
+        print(f"Ey: {Ey}")
+        print(f"Ey * 1.5 = {1.5 * Ey}")
+
+        
+        if Ex > 1.5 * Ey:
+            self.get_logger().info("Front or rear")
+            if Ix > 0:
+                self.get_logger().info("Contact rear")
+            elif Ix < 0:
+                self.get_logger().info("Contact Front")
+                
+        elif Ey > 1.5 * Ex:
+            self.get_logger().info("Left or right")
+            
+
+
     def handle_collision(self, t_event_ns):
         # stop robot
         t = Twist()
         t.linear.x = 0.0
         t.angular.z = 0.0
         self.stop.publish(t)
-
+        self.detect_direction(t_event_ns)
         self.last_fire_ns = t_event_ns
 
         # event message with proper ROS time
