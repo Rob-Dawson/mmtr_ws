@@ -39,6 +39,7 @@ class jerk_calc(Node):
         self.pub_jcorr = self.create_publisher(Vector3Stamped, "/dbg/jerk_corr", 10)
         self.pub_jmag  = self.create_publisher(Float32, "/dbg/jerk_corr_mag", 10)
 
+        self.acceleration_no_gravity_pub = self.create_publisher(Vector3Stamped, "/accel_without_grav", 10)
 
         self.pub_jerk = self.create_publisher(Vector3Stamped, "/jerk", 10)
 
@@ -52,7 +53,7 @@ class jerk_calc(Node):
         self.speed = 0.0
 
         # ENU (z up): gravity is negative Z
-        self.g_world = np.array([0.0, 0.0, -9.80665], dtype=float)
+        self.g_world = np.array([0.0, 0.0, 9.80665], dtype=float)
 
         # State
         self.prev_t_ns   = None
@@ -92,7 +93,7 @@ class jerk_calc(Node):
         
         q /= max(1e-12, np.linalg.norm(q))
         Rwb = quat_to_Rwb(*q)
-        g_b = Rwb @ self.g_world  # world -> body
+        g_b = Rwb.T @ self.g_world  # world -> body
 
         aw = 1.0 - math.exp(-2.0 * math.pi * self.fc_w * dt)
         aw = min(max(aw, 1e-3), 0.9)
@@ -121,16 +122,16 @@ class jerk_calc(Node):
 
         flp   = af * f + (1.0 - af) * self.prev_flp
         j_raw = (flp - self.prev_flp) / dt
-
+        
         omega_mid = 0.5 * (omega + self.prev_omega)
         g_b_mid   = 0.5 * (g_b   + self.prev_g_b)
         oxgb      = np.cross(omega_mid, g_b_mid)
         j_corr    = j_raw - oxgb
         J         = float(np.linalg.norm(j_corr))
 
-        if abs(ang_acc[2]) > 3.0:  # rad/s^2, tune
+        if abs(ang_acc[2]) > 3.0:
             self.turn_gate_until = (t_ns * 1e-9) + 0.08
-        in_turn_start = (t_ns * 1e-9) < self.turn_gate_until  # (use later in detector)
+        in_turn_start = (t_ns * 1e-9) < self.turn_gate_until
 
         self._pub_vec(self.pub_jraw,  msg.header.stamp, *j_raw)
         self._pub_vec(self.pub_oxgb,  msg.header.stamp, *oxgb)
@@ -144,6 +145,13 @@ class jerk_calc(Node):
         jerk.vector.y = float(j_corr[1])
         jerk.vector.z = float(j_corr[2])
         self.pub_jerk.publish(jerk)
+
+        accel_without_grav = Vector3Stamped()
+        accel_without_grav.header.stamp = msg.header.stamp
+        accel_without_grav.vector.x = flp[0]
+        accel_without_grav.vector.y = flp[1]
+        accel_without_grav.vector.z = flp[2]
+        self.acceleration_no_gravity_pub.publish(accel_without_grav)
 
         self.prev_flp   = flp
         self.prev_omega = omega
