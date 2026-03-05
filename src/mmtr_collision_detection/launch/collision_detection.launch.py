@@ -31,6 +31,6 @@ def generate_launch_description():
 
     ld = LaunchDescription()
     ld.add_action(jerk_calculation)
-    ld.add_action(collision_detection_2D)
+    # ld.add_action(collision_detection_2D)
 
     return ld
