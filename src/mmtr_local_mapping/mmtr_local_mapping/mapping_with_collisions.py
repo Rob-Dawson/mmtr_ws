@@ -192,6 +192,7 @@ class MappingWithCollisions(Node):
     def mark_as_free(self, current_cell_x, current_cell_y):
         now = self.get_clock().now().nanoseconds
 
+        ## This uses the circle_offsets to 
         for dx, dy in self.circle_offsets:           
             circle_cell_x = current_cell_x + dx
             circle_cell_y = current_cell_y + dy
@@ -203,7 +204,8 @@ class MappingWithCollisions(Node):
 
                 self.log_odds[circle_cell_y, circle_cell_x] = min(self.log_odds[circle_cell_y, circle_cell_x], LOG_PROB_MIN)
                 self.last_visited_ns[circle_cell_y, circle_cell_x] = now
-                
+                print(f"Last visited {self.last_visited_ns[circle_cell_y, circle_cell_x]}")
+                print(f"Now {now}")
                 if VISUALISE_LOG_ODDS_IN_RVIZ:
                     self.visited[circle_cell_y, circle_cell_x] = True
 
@@ -264,11 +266,10 @@ class MappingWithCollisions(Node):
 
         self.previous_cell_x = current_cell_x
         self.previous_cell_y = current_cell_y
-
+    
     def publish_map(self):
         header_stamp = self.get_clock().now().to_msg()
         probability = 1.0 / (1.0 + np.exp(-self.log_odds))
-        # print(probability)
         ##Contains all the cells where prob is > 0.7
         occupied_mask = probability > 0.7
         ##Contains all the cells where last_visited_ns is != 0
@@ -278,10 +279,11 @@ class MappingWithCollisions(Node):
             t_crash_ns = t_crash_sec*int(1e9) + t_crash_ns
 
             cells_after_crash = self.last_visited_ns >= t_crash_ns
+
             self.rollback_pending = False
-            stuff_happened = self.last_visited_ns > 0.0
-            print(self.last_visited_ns[stuff_happened])
-            print(f"CRASH {t_crash_ns}")
+            # stuff_happened = self.last_visited_ns > 0.0
+            # self.get_logger().info(self.last_visited_ns[stuff_happened])
+            # self.get_logger().info(f"CRASH {t_crash_ns}")
             self.last_visited_ns[cells_after_crash] = 0
 
             self.log_odds[cells_after_crash] = LOG_PRIOR_PROB
@@ -292,18 +294,12 @@ class MappingWithCollisions(Node):
         grid = np.full(self.log_odds.shape, -1, dtype=np.int8)
         grid[free_mask] = 0
         grid[occupied_mask] = 100
-
-
         
-
-
-
         self.map.data = grid.ravel(order="C").tolist()
         self.map.header.stamp = header_stamp
         self.map.header.frame_id = "mmtr/odom"
         self.map_pub.publish(self.map)
         hist, bins = np.histogram(self.log_odds, bins=10)
-        # print(list(zip(bins, hist)))
 
 
         if VISUALISE_LOG_ODDS_IN_RVIZ:
@@ -316,7 +312,6 @@ class MappingWithCollisions(Node):
             prob_vals = (probability * 100.0).astype(np.int16)
             mask = self.visited
             prob_grid[mask] = prob_vals[mask]
-            # print(prob_vals)
             prob_msg.data = prob_grid.ravel(order="C").tolist()
             self.map_prob_pub.publish(prob_msg)
 
