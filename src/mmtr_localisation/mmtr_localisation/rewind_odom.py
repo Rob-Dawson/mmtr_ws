@@ -54,9 +54,7 @@ class RewindOdom(Node):
     def __init__(self):
         super().__init__("Rewind_Odom")
 
-        # self.declare_parameter("use_sim_time", True)
         self.new_pose = None
-
         self.pose_buffer = deque()
         self.pose_sub = self.create_subscription(
             Odometry, "/odometry/filtered_ukf", self.pose_cb, 100

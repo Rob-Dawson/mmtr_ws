@@ -34,7 +34,7 @@ def generate_launch_description():
         value=[FindPackageShare("mmtr_description"), "/meshes"],
     )
 
-    default_world = os.path.join(mmtr_description_dir, "worlds", "empty.sdf")
+    default_world = os.path.join(mmtr_description_dir, "worlds", "small_world.sdf")
     world = LaunchConfiguration("world")
     world_arg = DeclareLaunchArgument(
         "world", default_value=default_world, description="World to load"

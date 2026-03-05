@@ -128,7 +128,7 @@ class Zupt(Node):
                                  imu.linear_acceleration.z])
         
         linear_accel_to_world = rotation_to_world_frame @ linear_Accel
-        gravity = np.array([0,0,9.86])
+        gravity = np.array([0,0,9.807])
         true_linear_accel = linear_accel_to_world - gravity
         # print(f"linear accel = {linear_accel_to_world}")
         
