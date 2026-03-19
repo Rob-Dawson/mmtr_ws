@@ -39,7 +39,7 @@ class jerk_calc(Node):
         self.pub_jcorr = self.create_publisher(Vector3Stamped, "/dbg/jerk_corr", 10)
         self.pub_jmag  = self.create_publisher(Float32, "/dbg/jerk_corr_mag", 10)
 
-        self.acceleration_no_gravity_pub = self.create_publisher(Vector3Stamped, "/accel_without_grav", 10)
+        self.inertia_model_pub = self.create_publisher(Imu, "/inertia_model", 10)
 
         self.pub_jerk = self.create_publisher(Vector3Stamped, "/jerk", 10)
 
@@ -71,25 +71,25 @@ class jerk_calc(Node):
 
         self.turn_gate_until = 0.0
 
-    def odom_cb(self, msg: Odometry):
-        self.speed = abs(msg.twist.twist.linear.x)
+    def odom_cb(self, odom_msg: Odometry):
+        self.speed = abs(odom_msg.twist.twist.linear.x)
 
-    def imu_cb(self, msg: Imu):
-        t_ns = Time.from_msg(msg.header.stamp).nanoseconds
+    def imu_cb(self, imu_msg: Imu):
+        t_ns = Time.from_msg(imu_msg.header.stamp).nanoseconds
         if self.prev_t_ns is None:
             self.prev_t_ns = t_ns
             return
         dt = max(self.dt_min, (t_ns - self.prev_t_ns) * 1e-9)
 
-        accel = np.array([msg.linear_acceleration.x,
-                          msg.linear_acceleration.y,
-                          msg.linear_acceleration.z], dtype=float)
-        omega_raw = np.array([msg.angular_velocity.x,
-                              msg.angular_velocity.y,
-                              msg.angular_velocity.z], dtype=float)
+        accel = np.array([imu_msg.linear_acceleration.x,
+                          imu_msg.linear_acceleration.y,
+                          imu_msg.linear_acceleration.z], dtype=float)
+        omega_raw = np.array([imu_msg.angular_velocity.x,
+                              imu_msg.angular_velocity.y,
+                              imu_msg.angular_velocity.z], dtype=float)
 
-        q = np.array([msg.orientation.x, msg.orientation.y,
-                      msg.orientation.z, msg.orientation.w], dtype=float)
+        q = np.array([imu_msg.orientation.x, imu_msg.orientation.y,
+                      imu_msg.orientation.z, imu_msg.orientation.w], dtype=float)
         
         q /= max(1e-12, np.linalg.norm(q))
         Rwb = quat_to_Rwb(*q)
@@ -133,25 +133,31 @@ class jerk_calc(Node):
             self.turn_gate_until = (t_ns * 1e-9) + 0.08
         in_turn_start = (t_ns * 1e-9) < self.turn_gate_until
 
-        self._pub_vec(self.pub_jraw,  msg.header.stamp, *j_raw)
-        self._pub_vec(self.pub_oxgb,  msg.header.stamp, *oxgb)
-        self._pub_vec(self.pub_jcorr, msg.header.stamp, *j_corr)
+        self._pub_vec(self.pub_jraw,  imu_msg.header.stamp, *j_raw)
+        self._pub_vec(self.pub_oxgb,  imu_msg.header.stamp, *oxgb)
+        self._pub_vec(self.pub_jcorr, imu_msg.header.stamp, *j_corr)
         self.pub_jmag.publish(Float32(data=J))
 
 
         jerk = Vector3Stamped()
-        jerk.header.stamp = msg.header.stamp
+        jerk.header.stamp = imu_msg.header.stamp
         jerk.vector.x = float(j_corr[0])
         jerk.vector.y = float(j_corr[1])
         jerk.vector.z = float(j_corr[2])
         self.pub_jerk.publish(jerk)
 
-        accel_without_grav = Vector3Stamped()
-        accel_without_grav.header.stamp = msg.header.stamp
-        accel_without_grav.vector.x = flp[0]
-        accel_without_grav.vector.y = flp[1]
-        accel_without_grav.vector.z = flp[2]
-        self.acceleration_no_gravity_pub.publish(accel_without_grav)
+        inertia_model = Imu()
+        inertia_model.header.stamp = imu_msg.header.stamp
+        inertia_model.linear_acceleration.x = flp[0]
+        inertia_model.linear_acceleration.y = flp[1]
+        inertia_model.linear_acceleration.z = flp[2]
+
+        inertia_model.angular_velocity.x = imu_msg.angular_velocity.x
+        inertia_model.angular_velocity.y = imu_msg.angular_velocity.y
+        inertia_model.angular_velocity.z = imu_msg.angular_velocity.z
+        
+
+        self.inertia_model_pub.publish(inertia_model)
 
         self.prev_flp   = flp
         self.prev_omega = omega

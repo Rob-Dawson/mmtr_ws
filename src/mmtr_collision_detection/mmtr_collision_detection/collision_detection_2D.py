@@ -45,10 +45,10 @@ class CollisionDetection(Node):
         )
         self.stop = self.create_publisher(Twist, "/model/mmtr/cmd_vel", 10)
         self.acce_mag = self.create_publisher(Float64, "accel_mag", 10)
-        self.accel_without_gravity = self.create_subscription(Vector3Stamped, "/accel_without_grav", self.accel_log, 10)
+        self.inertia_model = self.create_subscription(Vector3Stamped, "/inertia_model", self.inertia_model_log, 10)
 
         self.imu_buffer = deque()
-        self.accel_buffer = deque()
+        self.inertia_buffer = deque()
         ##Schmitt Trigger
         self.collision_thresh_on = 200.0
         self.collision_thresh_off = 100.0
@@ -65,29 +65,23 @@ class CollisionDetection(Node):
         self.refactory_ns = 200_000_000
 
         self.direction_detected = False
-
-    def accel_cb(self, accel: Vector3Stamped):
-        accel_mag_float = Float64()
-        x = accel.vector.x
-        y = accel.vector.y
-        accel_mag = math.sqrt(x * x + y * y)
-        accel_mag_float.data = accel_mag
-        self.acce_mag.publish(accel_mag_float)
-
-    def imu_cb(self, msg: Imu):
-        pass
     
-    def accel_log(self, accel: Vector3Stamped):
-        accel_time = Time.from_msg(accel.header.stamp).nanoseconds
-        x = accel.vector.x
-        y = accel.vector.y
-        self.accel_buffer.append((accel_time,x,y))
-        while self.accel_buffer and (accel_time - self.accel_buffer[0][0]) >= int(2.0*1e9):
-            self.accel_buffer.popleft()
+    def inertia_model_log(self, inertia_model: Imu):
+        inertia_time = Time.from_msg(inertia_model.header.stamp).nanoseconds
+        accel_x = inertia_model.linear_acceleration.x
+        accel_y = inertia_model.linear_acceleration.y
+
+        angular_vel_x = abs(inertia_model.angular_velocity.x)
+        angular_vel_y = abs(inertia_model.angular_velocity.y)
+        angular_vel_z = abs(inertia_model.angular_velocity.z)
+
+        self.inertia_buffer.append((inertia_time, accel_x, accel_y, angular_vel_x, angular_vel_y, angular_vel_z))
+        while self.inertia_buffer and (inertia_time - self.inertia_buffer[0][0]) >= int(2.0*1e9):
+            self.inertia_buffer.popleft()
         
         if self.direction_detected:
             return 
-        if self.trigger is True and self.accel_buffer[-1][0] > (self.last_fire_ns + 40_000_000):
+        if self.trigger is True and self.inertia_buffer[-1][0] > (self.last_fire_ns + 40_000_000):
            normal_window, crash_window = self.windows(self.last_fire_ns)
            if crash_window == []:
                return
@@ -158,10 +152,10 @@ class CollisionDetection(Node):
         self.get_logger().info(f"Crashed at {crash_time}")
         normal_window = []
         crash_window = []
-        # self.get_logger().info(f"Entire Accel Buffer: {self.accel_buffer}")
+        # self.get_logger().info(f"Entire Accel Buffer: {self.inertia_buffer}")
 
 
-        for candidate in self.accel_buffer:
+        for candidate in self.inertia_buffer:
             if crash_time-40_000_000 <= candidate[0] < crash_time:
                 normal_window.append(candidate)
             elif crash_time <= candidate[0] <= crash_time + 60_000_000:
@@ -181,7 +175,7 @@ class CollisionDetection(Node):
         stop_time = crash_time + post_crash
         
         Ix = Iy = Ex = Ey = 0
-        Ix_base = Iy_base = Ex_base = Ey_base = 0
+        Ix_base = Iy_base = 0
 
         for candidate in normal_window:
             ## Impulse Ix, Iy: net acceleration impulse
@@ -195,6 +189,11 @@ class CollisionDetection(Node):
         Ix_base = Ix_base / len(normal_window)
         Iy_base = Iy_base / len(normal_window)
 
+        peak_roll = max(crash_window, key=lambda roll: roll[3])[3]
+        peak_pitch = max(crash_window, key=lambda pitch: pitch[4])[4]
+        peak_yaw = max(crash_window, key=lambda yaw: yaw[5])[5]
+
+        
         
         for candidate in crash_window[1:]:
             corrected_X = candidate[1] - Ix_base
@@ -202,11 +201,9 @@ class CollisionDetection(Node):
 
             Ix += corrected_X
             Iy += corrected_Y
-            Ex += corrected_X * corrected_X
-            Ey += corrected_Y * corrected_Y
+
             self.get_logger().info(f"Corrected_x: {corrected_X}")
             self.get_logger().info(f"Corrected_y: {corrected_Y}")
-
 
             
         self.get_logger().info(f"Ix_base: {Ix_base}")
