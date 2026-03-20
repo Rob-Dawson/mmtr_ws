@@ -45,7 +45,7 @@ class CollisionDetection(Node):
         )
         self.stop = self.create_publisher(Twist, "/model/mmtr/cmd_vel", 10)
         self.acce_mag = self.create_publisher(Float64, "accel_mag", 10)
-        self.inertia_model = self.create_subscription(Vector3Stamped, "/inertia_model", self.inertia_model_log, 10)
+        self.inertia_model = self.create_subscription(Imu, "/inertia_model", self.inertia_model_log, 10)
 
         self.imu_buffer = deque()
         self.inertia_buffer = deque()
@@ -65,6 +65,9 @@ class CollisionDetection(Node):
         self.refactory_ns = 200_000_000
 
         self.direction_detected = False
+
+
+
     
     def inertia_model_log(self, inertia_model: Imu):
         inertia_time = Time.from_msg(inertia_model.header.stamp).nanoseconds
@@ -202,34 +205,55 @@ class CollisionDetection(Node):
             Ix += corrected_X
             Iy += corrected_Y
 
-            self.get_logger().info(f"Corrected_x: {corrected_X}")
-            self.get_logger().info(f"Corrected_y: {corrected_Y}")
-
-            
-        self.get_logger().info(f"Ix_base: {Ix_base}")
-        self.get_logger().info(f"Iy_base: {Iy_base}")
-
-
-        self.get_logger().info(f"Ex: {Ex}")
-        self.get_logger().info(f"Ey: {Ey}")
         self.get_logger().info(f"Ix: {Ix}")
         self.get_logger().info(f"Iy: {Iy}")
 
 
+        front_rear_total = 0
+        left_right_total = 0
 
-
-
-        self.get_logger().info(f"Ex = Ey * 1.5 = {1.5 * Ey}")
+        if abs(Ix) > 0.5:
+            front_rear_total += 1
+            if abs(peak_yaw) < 0.2:
+                front_rear_total += 2
+                if abs(peak_pitch) > 0.2:
+                    front_rear_total += 2
+                    if abs(Ix) > abs(Iy):
+                        front_rear_total += 2
         
-        if Ex > 1.5 * Ey:
-            self.get_logger().info("Front or rear")
-            if Ix > 0:
-                self.get_logger().info("Contact rear")
-            elif Ix < 0:
-                self.get_logger().info("Contact Front")
+        if abs(Iy) > 0.5:
+            left_right_total +=1      
+            if abs(peak_yaw)>0.2:
+                left_right_total +=2
+                if abs(peak_pitch) < 0.2:
+                    left_right_total +=1
+                    if abs(Iy) > abs(Ix):
+                        left_right_total+= 2
+
+
+        self.get_logger().info(f"Ix: {Ix}")
+        self.get_logger().info(f"Iy: {Iy}")
+        self.get_logger().info(f"Peak Pitch: {peak_pitch}")
+        self.get_logger().info(f"Peak Yaw: {peak_yaw}")
+        self.get_logger().info(f"Peak Roll: {peak_roll}")
+        self.get_logger().info(f"Left/right Total: {left_right_total}")
+        self.get_logger().info(f"Front/Rear Total: {front_rear_total}")
+        
+
+
+
+
+        # self.get_logger().info(f"Ex = Ey * 1.5 = {1.5 * Ey}")
+        
+        # if Ex > 1.5 * Ey:
+        #     self.get_logger().info("Front or rear")
+        #     if Ix > 0:
+        #         self.get_logger().info("Contact rear")
+        #     elif Ix < 0:
+        #         self.get_logger().info("Contact Front")
                 
-        elif Ey > 1.5 * Ex:
-            self.get_logger().info("Left or right")
+        # elif Ey > 1.5 * Ex:
+        #     self.get_logger().info("Left or right")
             
 
 
