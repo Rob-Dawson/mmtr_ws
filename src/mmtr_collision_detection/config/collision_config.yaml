@@ -1,0 +1,13 @@
+collision_node:
+  ros__parameters:
+    debug: true
+        ##Schmitt Trigger
+    collision_thresh_on: 200.0
+    collision_thresh_off: 100.0 
+    ## This is the amount of time before a new collision is registered
+    refractory_ns: 200_000_000
+    ## The purpose of delta_ns is to find the precise point the collision happened rather than when the crash was detected
+    ## Crash -> propergates through chassis -> IMU detects crash
+    ## estimated_true_crash_time = detected_onset_time - delta_ns    
+    delta_ns: 0
+    buffer_duration_ns: 2_000_000_000
