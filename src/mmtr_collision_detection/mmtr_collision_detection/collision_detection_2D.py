@@ -22,7 +22,13 @@ from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Twist, Vector3Stamped
 from mmtr_msg.msg import CollisionEvent
 
+##For testing
+from std_msgs.msg import Float64MultiArray
+
 from std_msgs.msg import Float64 
+
+
+
 @dataclass
 class ImuSample:
     t_ns: int
@@ -33,40 +39,57 @@ class ImuSample:
 
 
 class CollisionDetection(Node):
-    def __init__(self):
-        super().__init__("Collision_Detection")
+    def _declare_parameters(self):
+        self.declare_parameter("debug", False)
+        self.declare_parameter("collision_thresh_on")
+        self.declare_parameter("collision_thresh_off")
+        self.declare_parameter("refractory_ns")
+        self.declare_parameter("delta_ns")
+        self.declare_parameter("buffer_duration_ns")
 
+    
+    def _load_parameters(self):
+        self.debug = self.get_parameter("debug").value
+        self.collision_thresh_on = self.get_parameter("collision_thresh_on").value
+        self.collision_thresh_off = self.get_parameter("collision_thresh_off").value
+        self.refractory_ns = self.get_parameter("refractory_ns").value
+        self.delta_ns = self.get_parameter("delta_ns").value
+        self.buffer_duration_ns = self.get_parameter("buffer_duration_ns").value
+
+
+    def _setup_pubs(self):
         self.collision_pub = self.create_publisher(
             CollisionEvent, "/collision/event", 100
         )
+        self.stop = self.create_publisher(Twist, "/model/mmtr/cmd_vel", 10)
+        self.acce_mag = self.create_publisher(Float64, "accel_mag", 10)
+        ##For testing
+        if self.debug:
+            self.inertia_snapshot_pub = self.create_publisher(Float64MultiArray, "/inertia_snapshot", 10)
 
+    def _setup_subs(self):
         self.imu_sub = self.create_subscription(
             Vector3Stamped, "/jerk", self.jerk_buffer, 200
         )
-        self.stop = self.create_publisher(Twist, "/model/mmtr/cmd_vel", 10)
-        self.acce_mag = self.create_publisher(Float64, "accel_mag", 10)
         self.inertia_model = self.create_subscription(Imu, "/inertia_model", self.inertia_model_log, 10)
 
+    def _init_state(self):
         self.imu_buffer = deque()
         self.inertia_buffer = deque()
-        ##Schmitt Trigger
-        self.collision_thresh_on = 200.0
-        self.collision_thresh_off = 100.0
+
         self.trigger = False
 
+        ##The last time the IMU triggered a crash
         self.last_fire_ns = None
-        # This is acting like a little compensation tag for any
-        # small delay there is in the imu sampling
-        # It can stay as zero for now and manually move up if necessary
-        # Maybe use gazebo contact to find the precise time the robot hit
-        # And then compensate for any delay
-        # t_event_ns - t_contact_true
-        self.delta_ns = 0
-        self.refactory_ns = 200_000_000
-
         self.direction_detected = False
 
-
+    def __init__(self):
+        super().__init__("Collision_Detection")
+        self._declare_parameters()
+        self._load_parameters()
+        self._setup_pubs()
+        self._setup_subs()
+        self._init_state()
 
     
     def inertia_model_log(self, inertia_model: Imu):
@@ -79,13 +102,15 @@ class CollisionDetection(Node):
         angular_vel_z = abs(inertia_model.angular_velocity.z)
 
         self.inertia_buffer.append((inertia_time, accel_x, accel_y, angular_vel_x, angular_vel_y, angular_vel_z))
-        while self.inertia_buffer and (inertia_time - self.inertia_buffer[0][0]) >= int(2.0*1e9):
+        while self.inertia_buffer and (inertia_time - self.inertia_buffer[0][0]) >= self.buffer_duration_ns:
             self.inertia_buffer.popleft()
         
         if self.direction_detected:
-            return 
+            return
+        
         if self.trigger is True and self.inertia_buffer[-1][0] > (self.last_fire_ns + 40_000_000):
            normal_window, crash_window = self.windows(self.last_fire_ns)
+        
            if crash_window == []:
                return
            else:
@@ -112,18 +137,19 @@ class CollisionDetection(Node):
 
         self.imu_buffer.append(s)
         while self.imu_buffer and (
-            imu_time - self.imu_buffer[0].t_ns >= int(2.0 * 1e9)
+            imu_time - self.imu_buffer[0].t_ns >= self.buffer_duration_ns
         ):
             self.imu_buffer.popleft()
 
         if self.last_fire_ns is not None:
-            if (imu_time - self.last_fire_ns) < self.refactory_ns:
+            if (imu_time - self.last_fire_ns) < self.refractory_ns:
                 return
 
         if not self.trigger:
             if jerk_mag >= self.collision_thresh_on:
                 self.trigger = True
                 print("Collision")
+                
                 self.on_rising_edge(imu_time)
         else:
             if jerk_mag <= self.collision_thresh_off:
@@ -208,6 +234,14 @@ class CollisionDetection(Node):
         self.get_logger().info(f"Ix: {Ix}")
         self.get_logger().info(f"Iy: {Iy}")
 
+        min_peak_threshold = 0.08
+        min_yaw_threshold = 0.008
+        min_Ix_threshold = 0.05
+        min_Iy_threshold = 0.02
+
+        if peak_pitch < min_peak_threshold and peak_yaw < min_yaw_threshold:
+            return
+        
 
         front_rear_total = 0
         left_right_total = 0
@@ -222,7 +256,7 @@ class CollisionDetection(Node):
                         front_rear_total += 2
         
         if abs(Iy) > 0.5:
-            left_right_total +=1      
+            left_right_total +=1
             if abs(peak_yaw)>0.2:
                 left_right_total +=2
                 if abs(peak_pitch) < 0.2:
@@ -231,14 +265,37 @@ class CollisionDetection(Node):
                         left_right_total+= 2
 
 
-        self.get_logger().info(f"Ix: {Ix}")
-        self.get_logger().info(f"Iy: {Iy}")
-        self.get_logger().info(f"Peak Pitch: {peak_pitch}")
-        self.get_logger().info(f"Peak Yaw: {peak_yaw}")
-        self.get_logger().info(f"Peak Roll: {peak_roll}")
-        self.get_logger().info(f"Left/right Total: {left_right_total}")
-        self.get_logger().info(f"Front/Rear Total: {front_rear_total}")
-        
+            self.get_logger().info(f"Ix: {Ix}")
+            self.get_logger().info(f"Iy: {Iy}")
+            self.get_logger().info(f"Peak Pitch: {peak_pitch}")
+            self.get_logger().info(f"Peak Yaw: {peak_yaw}")
+            self.get_logger().info(f"Peak Roll: {peak_roll}")
+            self.get_logger().info(f"Left/right Total: {left_right_total}")
+            self.get_logger().info(f"Front/Rear Total: {front_rear_total}")
+            
+
+            ##For testing
+            inertia_snapshot = Float64MultiArray()
+            inertia_snapshot.data = []
+            inertia_snapshot.data.append(crash_time)
+            inertia_snapshot.data.append(Ix)
+            inertia_snapshot.data.append(Iy)
+            inertia_snapshot.data.append(peak_roll)
+            inertia_snapshot.data.append(peak_pitch)
+            inertia_snapshot.data.append(peak_yaw)
+
+            self.inertia_snapshot_pub.publish(inertia_snapshot)
+
+
+
+        if front_rear_total > left_right_total:
+            if Ix >= 0:
+                return CollisionEvent.FRONT
+            return CollisionEvent.REAR
+        else:
+            if Iy >= 0:
+                return CollisionEvent.RIGHT
+            return CollisionEvent.LEFT
 
 
 
