@@ -11,3 +11,22 @@ collision_node:
     ## estimated_true_crash_time = detected_onset_time - delta_ns    
     delta_ns: 0
     buffer_duration_ns: 2_000_000_000
+    min_peak_threshold: 0.08
+    min_yaw_threshold: 0.008
+
+
+    ## Direction Detection Scoring system
+    yaw_val: 0.2
+    peak_val: 0.2
+    Ix_val: 0.5
+    Iy_val: 0.5
+    front_rear_yaw_weight: 2
+    front_rear_pitch_weight: 2
+    front_rear_Ix_weight: 1
+    front_rear_Ix_greater_weight: 2
+    left_right_yaw_weight: 2
+    left_right_pitch_weight: 1
+    left_right_Iy_weight: 2
+
+    
+
