@@ -9,6 +9,15 @@
 # Where decide will either be "This was a bump, no need to stop"
 # or "This was a wall, stop and publish collision event"
 
+
+
+######## For now just use acceleration 
+
+
+
+
+
+
 from collections import deque
 from enum import Enum, auto
 import math
@@ -25,6 +34,8 @@ from std_msgs.msg import Float64MultiArray
 from std_msgs.msg import Float64 
 
 
+from rclpy.parameter import Parameter
+
 class State(Enum):
     IDLE = auto()
     CANDIDATE = auto()
@@ -32,27 +43,29 @@ class State(Enum):
 class CollisionDetection(Node):
     
     def _declare_parameters(self):
+        self.cfg = collision_config.Config()
         self.declare_parameter("debug", False)
-        self.declare_parameter("collision_thresh_on")
-        self.declare_parameter("collision_thresh_off")
-        self.declare_parameter("refractory_ns")
-        self.declare_parameter("delta_ns")
-        self.declare_parameter("buffer_duration_ns")
-        self.declare_parameter("min_peak_threshold")
-        self.declare_parameter("yaw_val")
-        self.declare_parameter("pitch_val")
-        self.declare_parameter("Ix_val")
-        self.declare_parameter("Iy_val")
-        self.cfg = collision_config.Config
+        self.declare_parameter("collision_thresh_on", Parameter.Type.DOUBLE)
+        self.declare_parameter("collision_thresh_off", Parameter.Type.DOUBLE)
+        self.declare_parameter("refractory_ns", Parameter.Type.INTEGER)
+        self.declare_parameter("delta_ns", Parameter.Type.INTEGER)
+        self.declare_parameter("buffer_duration_ns", Parameter.Type.INTEGER)
+        self.declare_parameter("min_peak_threshold", Parameter.Type.DOUBLE)
+        self.declare_parameter("min_yaw_threshold", Parameter.Type.DOUBLE)
 
-        self.declare_parameter("front_rear_yaw_weight")
-        self.declare_parameter("front_rear_pitch_weight")
-        self.declare_parameter("front_rear_Ix_weight")
-        self.declare_parameter("front_rear_Ix_greater_weight")
+        self.declare_parameter("yaw_val", Parameter.Type.DOUBLE)
+        self.declare_parameter("pitch_val", Parameter.Type.DOUBLE)
+        self.declare_parameter("Ix_val", Parameter.Type.DOUBLE)
+        self.declare_parameter("Iy_val", Parameter.Type.DOUBLE)
 
-        self.declare_parameter("left_right_yaw_weight")
-        self.declare_parameter("left_right_pitch_weight")
-        self.declare_parameter("left_right_Iy_weight")
+        self.declare_parameter("front_rear_yaw_weight", Parameter.Type.INTEGER)
+        self.declare_parameter("front_rear_pitch_weight", Parameter.Type.INTEGER)
+        self.declare_parameter("front_rear_Ix_weight", Parameter.Type.INTEGER)
+        self.declare_parameter("front_rear_Ix_greater_weight", Parameter.Type.INTEGER)
+
+        self.declare_parameter("left_right_yaw_weight", Parameter.Type.INTEGER)
+        self.declare_parameter("left_right_pitch_weight", Parameter.Type.INTEGER)
+        self.declare_parameter("left_right_Iy_weight", Parameter.Type.INTEGER)
 
     def _load_parameters(self):
         self.debug = self.get_parameter("debug").value
@@ -70,21 +83,21 @@ class CollisionDetection(Node):
         self.cfg.thresholds.ix     = self.get_parameter("Ix_val").value
         self.cfg.thresholds.iy     = self.get_parameter("Iy_val").value
 
-        self.cfg.weights.front_rear.yaw = self.get_parameter("front_rear_yaw_weight").value
-        self.cfg.weights.front_rear.pitch = self.get_parameter("front_rear_pitch_weight").value
-        self.cfg.weights.front_rear.axis = self.get_parameter("front_rear_axis").value
-        self.cfg.weights.front_rear.dominant_axis = self.get_parameter("front_rear_dominant_axis").value
+        # self.cfg.weights.front_rear.yaw = self.get_parameter("front_rear_yaw_weight").value
+        # self.cfg.weights.front_rear.pitch = self.get_parameter("front_rear_pitch_weight").value
+        # # self.cfg.weights.front_rear.axis = self.get_parameter("front_rear_axis").value
+        # self.cfg.weights.front_rear.dominant_axis = self.get_parameter("front_rear_dominant_axis").value
         
-        self.cfg.weights.left_right.axis = self.get_parameter("left_right_axis_weight").value
-        self.cfg.weights.left_right.yaw = self.get_parameter("left_right_yaw_weight").value
-        self.cfg.weights.left_right.pitch = self.get_parameter("left_right_pitch_weight").value
-        self.cfg.weights.left_right.dominant_axis = self.get_parameter("left_right_dominant_axis").value
+        # self.cfg.weights.left_right.axis = self.get_parameter("left_right_axis_weight").value
+        # self.cfg.weights.left_right.yaw = self.get_parameter("left_right_yaw_weight").value
+        # self.cfg.weights.left_right.pitch = self.get_parameter("left_right_pitch_weight").value
+        # self.cfg.weights.left_right.dominant_axis = self.get_parameter("left_right_dominant_axis").value
 
     def _setup_pubs(self):
         self.collision_pub = self.create_publisher(
             CollisionEvent, "/collision/event", 100
         )
-        self.stop = self.create_publisher(Twist, "/model/mmtr/cmd_vel", 10)
+        self.stop = self.create_publisher(Twist, "/cmd_vel", 10)
         self.acce_mag = self.create_publisher(Float64, "accel_mag", 10)
         
         ##For testing
@@ -93,9 +106,12 @@ class CollisionDetection(Node):
 
     def _setup_subs(self):
         self.imu_sub = self.create_subscription(
-            Vector3Stamped, "/jerk", self.jerk_buffer, 200
+            Vector3Stamped, "/imu/accel_gravity_removed_body", self.jerk_buffer, 200
         )
-        self.inertia_model = self.create_subscription(Imu, "/inertia_model", self.inertia_model_log, 10)
+        # self.imu_sub = self.create_subscription(
+        #     Vector3Stamped, "/jerk", self.jerk_buffer, 200
+        # )
+        # self.inertia_model = self.create_subscription(Imu, "/inertia_model", self.inertia_model_log, 10)
     
     def _init_state(self):
         self.imu_buffer = deque()
@@ -114,7 +130,6 @@ class CollisionDetection(Node):
         self._setup_pubs()
         self._setup_subs()
         self._init_state()
-
 
     def jerk_buffer(self, msg: Vector3Stamped):
         imu_time = Time.from_msg(msg.header.stamp).nanoseconds
@@ -141,9 +156,51 @@ class CollisionDetection(Node):
                 return
 
         if self.state == State.IDLE and jerk_mag >= self.collision_thresh_on:
+
             self.state = State.CANDIDATE
             self.last_trigger_time_ns = imu_time
             self.on_rising_edge(imu_time)
+        # if jerk_mag >= self.collision_thresh_on:
+
+            # self.get_logger().info("Crash")
+        # self.get_logger().info(f"Accel Mag = {jerk_mag}")
+        self.get_logger().info(f"Accel X = {jerk_x}")
+        self.get_logger().info(f"Accel Y = {jerk_y}")
+        self.get_logger().info(f"Accel Z = {jerk_z}")
+
+    # def jerk_buffer(self, msg: Vector3Stamped):
+    #     imu_time = Time.from_msg(msg.header.stamp).nanoseconds
+    #     jerk_x = msg.vector.x
+    #     jerk_y = msg.vector.y
+    #     jerk_z = msg.vector.z
+    #     jerk_mag = math.sqrt(jerk_x * jerk_x + jerk_y * jerk_y + jerk_z * jerk_z)
+    #     s = collision_config.ImuSample(
+    #         t_ns=imu_time,
+    #         jerk_mag=jerk_mag,
+    #         jerk_x=jerk_x,
+    #         jerk_y=jerk_y,
+    #         jerk_z=jerk_z,
+    #     )
+
+    #     self.imu_buffer.append(s)
+    #     while self.imu_buffer and (
+    #         imu_time - self.imu_buffer[0].t_ns >= self.buffer_duration_ns
+    #     ):
+    #         self.imu_buffer.popleft()
+        
+    #     if self.last_trigger_time_ns is not None:
+    #         if imu_time < self.last_trigger_time_ns + self.refractory_ns:
+    #             return
+
+    #     if self.state == State.IDLE and jerk_mag >= self.collision_thresh_on:
+
+    #         self.state = State.CANDIDATE
+    #         self.last_trigger_time_ns = imu_time
+    #         self.on_rising_edge(imu_time)
+    #     if jerk_mag >= self.collision_thresh_on:
+
+    #         self.get_logger().info("Crash")
+
 
     def on_rising_edge(self, imu_time):
         onset = self.find_onset()
@@ -318,7 +375,7 @@ class CollisionDetection(Node):
         self.stop.publish(t)
 
         # event message with proper ROS time
-        # self.get_logger().info(f"{event}")
+        self.get_logger().info(f"Crash")
         evt = CollisionEvent()
         evt.header.stamp = Time(nanoseconds=self.candidate_event_time).to_msg()
         evt.header.frame_id = "base_link"
