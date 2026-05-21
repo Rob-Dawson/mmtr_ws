@@ -17,12 +17,12 @@ ament_python_install_package(${PROJECT_NAME})
 
 install (PROGRAMS
   ${PROJECT_NAME}/collision_detection_2D.py
+  ${PROJECT_NAME}/collision_detection_2D_refactor.py
   ${PROJECT_NAME}/collision_detection_3D.py
   ${PROJECT_NAME}/collision_detection_shim.py
   ${PROJECT_NAME}/jerk_calc.py
   ${PROJECT_NAME}/magnetometer_check.py
   ${PROJECT_NAME}/imu_buffer.py
-
 
 DESTINATION lib/${PROJECT_NAME})
 
