@@ -6,13 +6,12 @@ from rclpy.time import Time
 class IMUCalibration(Node):
     def __init__(self):
         super().__init__("IMU_Calibration")
-        self.imu_sub = self.create_subscription(Imu, "/imu/out", self.imu_callback, 10)
+        self.imu_sub = self.create_subscription(Imu, "/imu", self.imu_callback, 10)
         self.imu_pub = self.create_publisher(Imu, "imu/data_raw", 10)
 
         self.gyro_x = []
         self.gyro_y = []
         self.gyro_z = []
-
         self.accel_x = []
         self.accel_y = []
         self.accel_z = []
@@ -35,10 +34,21 @@ class IMUCalibration(Node):
         self.gyro_x_error = sum(gyro_x) / len(gyro_x)
         self.gyro_y_error = sum(gyro_y) / len(gyro_y)
         self.gyro_z_error = sum(gyro_z) / len(gyro_z)
-
         self.accel_x_error = sum(accel_x) / len(accel_x)
         self.accel_y_error = sum(accel_y) / len(accel_y)
-        self.accel_z_error = (sum(accel_z) / len(accel_z)) - 9.80665
+        self.accel_z_error = (sum(accel_z) / len(accel_z)) - 10.415007595272245
+        
+        
+        self.get_logger().info(f"Accel Error: {self.accel_x_error}")
+        self.get_logger().info(f"Accel Error: {self.accel_y_error}")
+        self.get_logger().info(f"Accel Error: {self.accel_z_error}")
+        self.get_logger().info(f"Gyro Error: {self.gyro_x_error}")
+        self.get_logger().info(f"Gyro Error: {self.gyro_y_error}")
+        self.get_logger().info(f"Gyro Error: {self.gyro_z_error}")
+
+
+
+
 
     def imu_callback(self, imu:Imu):
         if self.start_time is None:

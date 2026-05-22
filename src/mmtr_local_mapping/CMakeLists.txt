@@ -17,6 +17,7 @@ ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
   ${PROJECT_NAME}/mapping_with_collisions.py
+  ${PROJECT_NAME}/mapping_with_collisions_real_robot.py
 
 
 DESTINATION lib/${PROJECT_NAME})
