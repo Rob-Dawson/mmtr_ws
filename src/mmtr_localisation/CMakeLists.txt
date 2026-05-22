@@ -15,7 +15,9 @@ find_package(geometry_msgs REQUIRED)
 ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
-  ${PROJECT_NAME}/zupt.py
+  ${PROJECT_NAME}/simple_zupt.py
+
+  # ${PROJECT_NAME}/zupt.py
   ${PROJECT_NAME}/zero_yaw.py
   ${PROJECT_NAME}/pose_buffer.py
   ${PROJECT_NAME}/imu_calibration.py
@@ -23,6 +25,8 @@ install(PROGRAMS
   ${PROJECT_NAME}/magnetometer_frame_conversion.py
   ${PROJECT_NAME}/rewind_odom.py
   ${PROJECT_NAME}/yaw_correction.py
+  ${PROJECT_NAME}/imu_axis_correction.py
+
 
 
 DESTINATION lib/${PROJECT_NAME})
