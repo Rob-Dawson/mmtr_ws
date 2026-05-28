@@ -361,7 +361,7 @@ class IMUCalibration(Node):
         true_accel_world_vector.vector.y = float(true_accel_world[1])
         true_accel_world_vector.vector.z = float(true_accel_world[2])
 
-        self.accel_body_pub.publish(true_accel_world_vector)
+        self.accel_body_pub.publish(true_accel_body_vector)
         self.accel_world_pub.publish(true_accel_world_vector)
 
     def handle_recalibrate(self, imu:Imu):
@@ -449,6 +449,8 @@ class IMUCalibration(Node):
         elif self.state == State.PUBLISH_CALIBRATED_IMU:
             self.handle_publish_calibrated_IMU(imu)
             self.handle_publish_accel_without_gravity(imu)
+            self.get_logger().info(f"{self.accel_error}")
+
 
             # if self.is_zupt_active():
                 # self.state = State.RECALIBRATE
